@@ -1,0 +1,10 @@
+{
+  "languageMode": "strict",
+  "lint": {
+    "*": false
+  },
+  "aliases": {
+    "deps": "./deps",
+    "std": "./std"
+  }
+}
