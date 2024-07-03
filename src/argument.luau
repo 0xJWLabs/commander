@@ -1,9 +1,3 @@
-local Closers = {
-    req = {left = "<", right = ">"},
-    opt = {left = "[", right = "]"},
-    optlist = {left = "[...", right = "]"}
-}
-
 local fstring = require("utils/fstring")
 
 local Argument = {}
@@ -13,21 +7,16 @@ Argument.interface = {}
 
 Argument.prototype.__type = 'Argument'
 
-function Argument.prototype.renderExtended<T>(self: Argument<T>): string
-    local commander = self.commander :: any
-    return `{commander._theme.command.argument.color(self:render())}{commander._theme.command.description.color(self.description and " " .. self.description or "")}{commander._theme.command.description.color(self.default and " (Default: " .. self.default .. ")" or "")}`
+local function humanReadableArgName(arg: Argument): string
+    local nameOutput = arg:name() .. (arg.variadic == true and '...' or '')
+    return arg.required and '<' .. nameOutput .. '>' or '[' .. nameOutput  .. ']'
 end
 
-function Argument.prototype.render<T>(self: Argument<T>): string
-    local closer = Closers[self.type] or {left = "", right = ""}
-    return closer.left .. self:name() .. closer.right
-end
-
-function Argument.prototype.name<T>(self: Argument<T>): string
+function Argument.prototype.name(self: Argument): string
     return self._name
 end
 
-function Argument.interface.new<T>(params: ArgumentParams, commander: T): Argument<T>
+function Argument.interface.new(params: ArgumentParams): Argument
     local name = params.name
 
     local argument = {
@@ -35,12 +24,11 @@ function Argument.interface.new<T>(params: ArgumentParams, commander: T): Argume
         description = params.description or '',
         type = params.type,
         default = params.default,
-        commander = commander,
     }
 
     local arg = (setmetatable(argument, {
         __index = Argument.prototype
-    }) :: any) :: Argument<T>
+    }) :: any) :: Argument
 
     local firstChar = string.sub(name, 1, 1)
 
@@ -67,14 +55,16 @@ export type ArgumentParams = {
     description: string?
 }
 
-export type Argument<T> = {
+export type Argument = {
     _name: string,
     type: string,
     default: string,
     description: string,
-    commander: T,
     variadic: boolean,
     required: boolean,
 } & typeof(Argument.prototype)
 
-return Argument.interface
+return {
+    Argument = Argument.interface,
+    humanReadableArgName = humanReadableArgName
+} 

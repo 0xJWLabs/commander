@@ -96,16 +96,7 @@ Option.interface = {}
 
 Option.prototype.__type = 'Option'
 
-function Option.prototype.renderExtended<T>(self: Option<T>): string
-    local commander = self.commander :: any
-    return commander._theme.command.option.color(self.flags) .. " => " .. commander._theme.command.description.color(self.description .. (not (self.default == nil) and " (default: \"" .. tostring(self.default) .. "\")" or ""))
-end
-
-function Option.prototype.render<T>(self: Option<T>): string
-    return self.flags 
-end
-
-function Option.prototype.name<T>(self: Option<T>): string
+function Option.prototype.name(self: Option): string
     if self.long then
         local name = string.gsub(self.long, '^-%-', '')
         return name
@@ -115,11 +106,15 @@ function Option.prototype.name<T>(self: Option<T>): string
     return name
 end
 
-function Option.prototype.attributeName<T>(self: Option<T>): string
+function Option.prototype.is(self: Option, arg: string)
+    return self.short == arg or self.long == arg
+end
+
+function Option.prototype.attributeName(self: Option): string
     return camelcase(self:name())
 end
 
-function Option.interface.new<T>(params: OptionParams, commander: T): Option<T>
+function Option.interface.new(params: OptionParams): Option
     local flags = params.flags
     local optionFlags = splitOptionFlags(flags)
     local argument = {
@@ -132,7 +127,6 @@ function Option.interface.new<T>(params: OptionParams, commander: T): Option<T>
         default = params.default,
         file = params.file,
         transform = if params.transform ~= nil and typeof(params.transform) == "function" then params.transform else function(param) return param end,
-        commander = commander
     }
 
     if argument.type == 'flag' then
@@ -141,7 +135,7 @@ function Option.interface.new<T>(params: OptionParams, commander: T): Option<T>
 
     return (setmetatable(argument, {
         __index = Option.prototype
-    }) :: any) :: Option<T>
+    }) :: any) :: Option
 end
 
 export type OldOptionParams = {
@@ -164,7 +158,7 @@ export type OptionParams = {
     hide: boolean?,
 }
 
-export type Option<T> = {
+export type Option = {
     hide: boolean?,
     short: string?,
     long: string?,
@@ -174,7 +168,6 @@ export type Option<T> = {
     default: any?,
     file: any,
     transform: ((param: any) -> any),
-    commander: T
 } & typeof(Option.prototype)
 
 return Option.interface

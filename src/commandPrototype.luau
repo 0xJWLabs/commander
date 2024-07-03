@@ -1,12 +1,14 @@
-local Argument = require('argument')
+local ArgumentModule = require('argument')
 local Option = require('option')
 local Table = require('utils/table')
 local fstring = require('utils/fstring')
 
-type Argument<T> = Argument.Argument<T>
-type Option<T> = Option.Option<T>
+local Argument = ArgumentModule.Argument
+
+type Argument = ArgumentModule.Argument
+type Option = Option.Option
 type OptionParams = Option.OptionParams
-type ArgumentParams = Argument.ArgumentParams
+type ArgumentParams = ArgumentModule.ArgumentParams
 
 local function splitOptionFlags(flags: string)
     local shortFlag
@@ -54,19 +56,19 @@ CommandPrototype.interface = {}
 
 CommandPrototype.prototype.__type = 'CommandPrototype'
 
-function CommandPrototype.prototype.action<T>(self: CommandPrototype<T>, fn: (...any) -> ())
+function CommandPrototype.prototype.action(self: CommandPrototype, fn: (...any) -> ())
     assert(fn, 'fn <function> is required for ' .. self.name .. ' command')
     self.fn = fn
 
     return self
 end
 
-function CommandPrototype.prototype.replaceArgument<T>(
-    self: CommandPrototype<T>,
+function CommandPrototype.prototype.replaceArgument(
+    self: CommandPrototype,
     argname: string,
     description: string?,
     default: string?
-): CommandPrototype<T>
+): CommandPrototype
     assert(argname, 'argument for ' .. self.name .. ' command')
     for _, v in self.arguments do
         if v._name == argname then
@@ -78,7 +80,7 @@ function CommandPrototype.prototype.replaceArgument<T>(
     return self
 end
 
-function CommandPrototype.prototype.hasOpt<T>(self: CommandPrototype<T>, opt: string): Option<T>?
+function CommandPrototype.prototype.hasOpt(self: CommandPrototype, opt: string): Option?
     return Table.Find(self.options, function(value)
         if value.long == opt or value.short == opt then
             return true
@@ -88,7 +90,7 @@ function CommandPrototype.prototype.hasOpt<T>(self: CommandPrototype<T>, opt: st
     end)
 end
 
-function CommandPrototype.prototype.names<T>(self: CommandPrototype<T>)
+function CommandPrototype.prototype.names(self: CommandPrototype)
     local names = { self.name }
     Table.ForEach(self.alias, function(alias)
         table.insert(names, alias)
@@ -97,20 +99,20 @@ function CommandPrototype.prototype.names<T>(self: CommandPrototype<T>)
     return names
 end
 
-function CommandPrototype.prototype.description<T>(self: CommandPrototype<T>, description: string)
+function CommandPrototype.prototype.description(self: CommandPrototype, description: string): CommandPrototype
     self._description = description
 
     return self
 end
 
-function CommandPrototype.prototype.option<T>(
-    self: CommandPrototype<T>,
+function CommandPrototype.prototype.option(
+    self: CommandPrototype,
     flags: string,
     description: string?,
     default: any?,
     hide: boolean?,
     transform: ((...any) -> ())?
-): CommandPrototype<T>
+): CommandPrototype
     assert(flags, 'opt <flags> is required for ' .. self.name .. ' command')
     local flagSplit = splitOptionFlags(flags)
 
@@ -132,15 +134,15 @@ function CommandPrototype.prototype.option<T>(
     return self
 end
 
--- function CommandPrototype.prototype.option<T>(
---     self: CommandPrototype<T>,
+-- function CommandPrototype.prototype.option(
+--     self: CommandPrototype,
 --     long: string | Option.OptionParams,
 --     short: string,
 --     description: string?,
 --     type: string?,
 --     default: any?,
 --     transform: ((...any) -> ())?
--- ): CommandPrototype<T>
+-- ): CommandPrototype
 --     assert(long, 'opt <long> is required for ' .. self.name .. ' command')
 --     local config: OptionParams
 --     if typeof(long) == 'table' then
@@ -166,11 +168,11 @@ end
 --     return self
 -- end
 
-function CommandPrototype.prototype.run<T>(self: CommandPrototype<T>, ...: any)
+function CommandPrototype.prototype.run(self: CommandPrototype, ...: any)
     return self.fn(...)
 end
 
-function CommandPrototype.prototype.setAlias<T>(self: CommandPrototype<T>, alias: string | { string })
+function CommandPrototype.prototype.setAlias(self: CommandPrototype, alias: string | { string })
     assert(
         type(alias) == 'table' or type(alias) == 'string',
         'Alias should be a table (like-array) or a string'
@@ -183,85 +185,8 @@ function CommandPrototype.prototype.setAlias<T>(self: CommandPrototype<T>, alias
     return self
 end
 
-function CommandPrototype.prototype.usage<T>(
-    self: CommandPrototype<T>,
-    flagUsage: boolean?,
-    tag: string?
-)
-    if self.hide then
-        return
-    end
-
-    local cmdPrev = ''
-    if flagUsage then
-        cmdPrev = (self.commander :: any)._theme.command.category.color('Usage:')
-    end
-    cmdPrev ..= ' '
-    print(
-        cmdPrev
-            .. (self.commander :: any)._theme.command.definition.color(
-                (tag and tag .. ' ' or '') .. self:usageCommand()
-            )
-            .. ' => '
-            .. (self.commander :: any)._theme.command.description.color(self._description)
-    )
-end
-
-function CommandPrototype.prototype.usageExtended<T>(self: CommandPrototype<T>, tag: string?)
-    local usage = (self.commander :: any)._theme.command.category.color('Usage: ')
-        .. (self.commander :: any)._theme.command.definition.color(
-            (tag and tag .. ' ' or '') .. self:usageCommand()
-        ) --.." => " .. self.description .. "\n"
-    usage = usage .. (self.commander :: any)._theme.command.category.color('\nName: ') .. self.name
-    if #self.alias > 0 then
-        usage = usage
-            .. (self.commander :: any)._theme.command.category.color('; alias: ')
-            .. Table.concat(self.alias, ', ')
-    end
-    usage = usage .. '\n'
-    if #self._description > 0 then
-        usage = usage
-            .. (self.commander :: any)._theme.command.category.color('Description: ')
-            .. self._description
-            .. '\n'
-    end
-    if #self.arguments > 0 then
-        usage = usage .. (self.commander :: any)._theme.command.category.color('Arguments:\n')
-        for _, argument in ipairs(self.arguments) do
-            usage ..= '  ' .. argument:renderExtended() .. '\n'
-        end
-    end
-    if #self.options > 0 then
-        usage = usage .. (self.commander :: any)._theme.command.category.color('Options:\n')
-        Table.ForEach(self.options, function(opt)
-            if not opt.hide then
-                usage ..= '  ' .. opt:renderExtended() .. '\n'
-            end
-        end)
-    end
-    print(usage)
-end
-
-function CommandPrototype.prototype.usageCommand<T>(self: CommandPrototype<T>): string
-    local usage = self.name .. ' '
-    if #self.arguments > 0 then
-        for _, argument in ipairs(self.arguments) do
-            usage = usage .. argument:render() .. ' '
-        end
-    end
-    if #self.options > 0 then
-        usage ..= '[options]'
-    else
-        usage ..= ''
-        -- Table.ForEach(self.options, function(opt)
-        --     usage ..= opt:render() .. ' '
-        -- end)
-    end
-    return usage
-end
-
-function CommandPrototype.prototype.argument<T>(
-    self: CommandPrototype<T>,
+function CommandPrototype.prototype.argument(
+    self: CommandPrototype,
     argument: string,
     description: string?,
     default: string?
@@ -304,7 +229,7 @@ function CommandPrototype.prototype.argument<T>(
     return self
 end
 
-function CommandPrototype.prototype.checkParsed<T>(self: CommandPrototype<T>, parsed)
+function CommandPrototype.prototype.checkParsed(self: CommandPrototype, parsed)
     local required: { { name: string, type: string, typearg: string } } =
         {} :: { { name: string, type: string, typearg: string } }
     if #self.arguments > 0 then -- Parse required and optional arguments
@@ -322,13 +247,13 @@ function CommandPrototype.prototype.checkParsed<T>(self: CommandPrototype<T>, pa
         err ..= value.name .. ', '
     end)
     if not (#required == 0) then
-        (self.commander :: any):error(err)
+        error(err)
     end
     return (#required == 0)
 end
 
-function CommandPrototype.prototype.__parser<T>(
-    self: CommandPrototype<T>,
+function CommandPrototype.prototype.__parser(
+    self: CommandPrototype,
     command: string,
     defaults: any
 )
@@ -382,28 +307,27 @@ function CommandPrototype.prototype.__parser<T>(
     return result
 end
 
-function CommandPrototype.prototype.argumentCreator<T>(
-    self: CommandPrototype<T>,
+function CommandPrototype.prototype.argumentCreator(
+    _: CommandPrototype,
     options: ArgumentParams
-): Argument<T>
-    local argument = Argument.new(options, self.commander)
+): Argument
+    local argument = Argument.new(options)
     return argument
 end
 
-function CommandPrototype.prototype.optionCreator<T>(
-    self: CommandPrototype<T>,
+function CommandPrototype.prototype.optionCreator(
+    _: CommandPrototype,
     options: OptionParams
-): Option<T>
-    local option = Option.new(options, self.commander)
+): Option
+    local option = Option.new(options)
     return option
 end
 
-function CommandPrototype.interface.new<T>(
+function CommandPrototype.interface.new(
     command: string,
-    config: Config<T>?,
-    commander: T?
-): CommandPrototype<T>
-    local actualConfig: Config<T> = config or {} :: Config<T>
+    config: Config?
+): CommandPrototype
+    local actualConfig: Config = config or {} :: Config
     actualConfig.arguments = (actualConfig.arguments or {}) :: any
 
     local self = {
@@ -415,21 +339,20 @@ function CommandPrototype.interface.new<T>(
         arguments = {},
         options = {},
         fn = actualConfig.action or function(_) end,
-        commander = commander,
     }
 
     local cmd = (
         setmetatable(self, {
             __index = CommandPrototype.prototype,
         }) :: any
-    ) :: CommandPrototype<T>
+    ) :: CommandPrototype
 
     cmd:__parser(command, cmd.positional_args)
     assert(cmd.name, 'CommandPrototype name is required')
 
     cmd:option('--help', nil, nil, true)
 
-    return (cmd :: any) :: CommandPrototype<T>
+    return (cmd :: any) :: CommandPrototype
 end
 
 export type ArgumentCreatorParams = {
@@ -439,8 +362,8 @@ export type ArgumentCreatorParams = {
     description: string?,
 }
 
-export type Config<T> = {
-    arguments: { Argument<T> }?,
+export type Config = {
+    arguments: { Argument }?,
     description: string?,
     alias: { string }?,
     positional_args: { string }?,
@@ -449,16 +372,15 @@ export type Config<T> = {
     main: boolean?,
 }
 
-export type CommandPrototype<T> = {
+export type CommandPrototype = {
     name: string,
     _description: string,
     hide: boolean,
     alias: { string },
     positional_args: { string },
-    arguments: { Argument<T> },
-    options: { Option<T> },
+    arguments: { Argument },
+    options: { Option },
     fn: (...any) -> (),
-    commander: T,
 } & typeof(CommandPrototype.prototype)
 
 return CommandPrototype.interface

@@ -5,6 +5,7 @@ local ThemeColor = require('./themeColor')
 local chalk = require('./utils/chalk')
 local fs = require('@lune/fs')
 local process = require('@lune/process')
+local Helper = require("./helper")
 
 local Commander = {}
 
@@ -32,7 +33,7 @@ end
 
 function Commander.prototype.action(
     self: Commander,
-    cmd: CommandPrototype.CommandPrototype<Commander> | string,
+    cmd: CommandPrototype.CommandPrototype | string,
     params: any
 ): Commander
     if type(cmd) == 'string' then
@@ -40,7 +41,7 @@ function Commander.prototype.action(
     end
     params = params or {}
 
-    local cmd = cmd :: CommandPrototype.CommandPrototype<Commander>
+    local cmd = cmd :: CommandPrototype.CommandPrototype
     if cmd:checkParsed(params) then
         self.default_action = function()
             cmd:run(params, cmd, self)
@@ -53,12 +54,12 @@ end
 
 function Commander.prototype.command(
     self: Commander,
-    command: string | CommandPrototype.CommandPrototype<Commander>,
-    description: (string | CommandPrototype.Config<Commander>)?,
-    _config: CommandPrototype.Config<Commander>?
-): CommandPrototype.CommandPrototype<Commander>
+    command: string | CommandPrototype.CommandPrototype,
+    description: (string | CommandPrototype.Config)?,
+    _config: CommandPrototype.Config?
+): CommandPrototype.CommandPrototype
     if typeof(command) == 'string' then
-        local config: CommandPrototype.Config<Commander>?
+        local config: CommandPrototype.Config?
 
         if description ~= nil then
             if type(description) == 'table' then
@@ -66,11 +67,11 @@ function Commander.prototype.command(
             end
             if type(description) == 'string' then
                 config = _config or {};
-                (config :: CommandPrototype.Config<Commander>).description = description
+                (config :: CommandPrototype.Config).description = description
             end
         end
 
-        local cmd = CommandPrototype.new(command, config, self)
+        local cmd = CommandPrototype.new(command, config)
         local cmdSetted = self:findCmd(cmd:names())
         if cmdSetted then
             error('')
@@ -86,9 +87,6 @@ function Commander.prototype.command(
         return cmd
     else
         local cmd = command
-        if cmd.commander == nil then
-            cmd.commander = self
-        end
         local cmdSetted = self:findCmd(cmd:names())
         if cmdSetted then
             error('')
@@ -124,7 +122,7 @@ end
 function Commander.prototype.findCmd(
     self: Commander,
     cmd: string | { string }
-): CommandPrototype.CommandPrototype<Commander>?
+): CommandPrototype.CommandPrototype?
     local actualCmdName = (typeof(cmd) == 'string' and { cmd } or cmd) :: { string }
     return Table.Find(self.commands, function(command)
         local res
@@ -142,44 +140,7 @@ function Commander.prototype.help(self: Commander, ignore_flag: boolean?)
     if self.prevent_help and not ignore_flag then
         return
     end
-    print(
-        self._theme.cli.title.color(
-            self._title
-                .. ' (v'
-                .. self._version
-                .. ')'
-                .. ((#self.author > 0 and ' by ' .. self.author) or '')
-                .. '\n'
-        )
-            .. self._theme.cli.category.color('Usage: ')
-            .. self._name
-            .. ' <command> [options] '
-    )
-    if #self._description > 0 then
-        print(self._theme.cli.category.color('Description: ') .. self._description)
-    end
-    if self.default_action and self.default_action_command then
-        print(
-            self._theme.cli.category.color('Default command: ')
-                .. self.default_action_command.name
-                .. (
-                    (
-                        #self.default_action_command._description > 0
-                        and ' => ' .. self.default_action_command._description
-                    ) or ''
-                )
-        )
-    end
-    self._theme.cli.category('Commands:')
-    Table.ForEach(self.commands, function(cmd)
-        cmd:usage()
-    end)
-    print()
-    print(
-        self._theme.cli.category.color('Use: ')
-            .. self._theme.command.definition.color(self._name .. ' help <command>')
-            .. ' to get more info about that command'
-    )
+    Helper.formatHelp(self)
 end
 
 local function IsHex(String): boolean
@@ -287,7 +248,16 @@ function Commander.prototype.parse(self: Commander, message: { string }?)
                         end
                     else
                         if cmd_arg.type == 'req' then -- if required argument is missing, then execute Commander:usage() to show help usage
-                            return cmd:usage(true, self._name or '')
+                            local usage = Helper.commandFlag(cmd) or ''
+                            if usage then
+                                usage = self._theme.command.category.color('Usage:')
+                            end
+                            local term = Helper.commandTerm(self, cmd)
+                            if term then
+                                usage ..= self._theme.command.definition.color(term)
+                            end
+
+                            return usage .. self._theme.command.description.color(Helper.commandDescription(cmd))
                         end
                     end
                 end
@@ -296,14 +266,24 @@ function Commander.prototype.parse(self: Commander, message: { string }?)
                 local a = args[ka]
                 local opt = cmd:hasOpt(a)
                 if opt then
-                    if opt.type == 'flag' then
-                        parsed:setarg(opt:attributeName(), true)
-                    elseif args[ka + 1] and not startsWith(args[ka + 1], '-') then
-                        parsed:setarg(opt:attributeName(), opt.transform(args[ka + 1]))
-                        ka = ka + 2
+                    if opt.type == 'normal' then
+                        if args[ka + 1] and not startsWith(args[ka + 1], '-') then
+                            parsed:setarg(opt:attributeName(), opt.transform(args[ka + 1]))
+                            ka = ka + 2
+                        else
+                            parsed:setarg(opt:attributeName(), true)
+                        end
                     else
                         parsed:setarg(opt:attributeName(), true)
                     end
+                    -- if opt.type == 'flag' then
+                    --     parsed:setarg(opt:attributeName(), true)
+                    -- elseif args[ka + 1] and not startsWith(args[ka + 1], '-') then
+                    --     parsed:setarg(opt:attributeName(), opt.transform(args[ka + 1]))
+                    --     ka = ka + 2
+                    -- else
+                    --     parsed:setarg(opt:attributeName(), true)
+                    -- end
                 end
             end
 
@@ -321,7 +301,8 @@ function Commander.prototype.parse(self: Commander, message: { string }?)
             end)
 
             if parsed.help then
-                cmd:usageExtended(self._name)
+                Helper.formatHelp(self, cmd)
+                -- cmd:usageExtended(self._name)
             else
                 cmd:run(parsed, cmd, self)
             end
@@ -423,7 +404,7 @@ function Commander.interface.new(name: string?, title: string?, opt: CommanderSe
             if parsed.cmd then
                 local command = commander:findCmd(parsed.cmd)
                 if command then
-                    command:usageExtended(commander._name)
+                    Helper.formatHelp(commander, command)
                 else
                     commander:help(true)
                 end
@@ -460,7 +441,7 @@ export type CommanderSetup = {
     root_path: string,
     prevent_help: boolean,
     default_action: any,
-    commands: { CommandPrototype.CommandPrototype<Commander> },
+    commands: { CommandPrototype.CommandPrototype },
     debug: boolean,
 }
 
@@ -473,9 +454,9 @@ export type Commander = {
     root_path: string,
     prevent_help: boolean,
     default_action: any,
-    commands: { CommandPrototype.CommandPrototype<Commander> },
+    commands: { CommandPrototype.CommandPrototype },
     _theme: any,
-    default_action_command: CommandPrototype.CommandPrototype<Commander>,
+    default_action_command: CommandPrototype.CommandPrototype,
     parsed: any,
     debug: boolean,
 } & typeof(Commander.prototype)
