@@ -155,7 +155,7 @@ function applyStyle(self, ...)
 
 	for _, str in { ... } do
 		if typeof(str) == "table" then
-			str = Table
+			str = {}
 		end
 		if str == nil or type(str) == "string" and #str == 0 then
 			return ""
@@ -167,7 +167,7 @@ function applyStyle(self, ...)
 		local styler = self
 	
 		local openAll, closeAll = styler.open, styler.close
-		if string.match(str, "\u{001B}") then
+		if string.match(str, `\u{001B}`) then
 			-- ROBLOX deviation START: no parent styles support yet
 			-- Replace any instances already present with a re-opening code
 			-- otherwise only the part of the string until said closing code

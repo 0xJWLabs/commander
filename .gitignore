@@ -1,3 +1,4 @@
-**/__tests__/**
-
+**/__tests__/
+**/release/
+**/build/
 test.luau

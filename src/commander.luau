@@ -1,11 +1,15 @@
 local CommandPrototype = require('./commandPrototype')
 local Parsed = require('./parsed')
-local Table = require('./utils/table')
 local ThemeColor = require('./themeColor')
 local chalk = require('./utils/chalk')
-local fs = require('@lune/fs')
 local process = require('@lune/process')
 local Helper = require("./helper")
+local Logger = require("./utils/logger")
+local Themes = require("./themes")
+
+local Table = require("./utils/table")
+local String = require("./utils/string")
+
 
 local Commander = {}
 
@@ -14,17 +18,9 @@ Commander.interface = {}
 
 Commander.prototype.__type = 'Commander'
 
-local function endsWith(str: string, suffix: string)
-    return str:sub(-#suffix) == suffix
-end
-
-local function startsWith(str: string, suffix: string)
-    return str:sub(1, #suffix) == suffix
-end
-
 local function optlist_parser(arguments, index: number, list: any?)
     local list = list or {}
-    if arguments[index] and not startsWith(arguments[index], '-') then
+    if arguments[index] and not String.startsWith(arguments[index], '-') then
         table.insert(list, arguments[index])
         return optlist_parser(arguments, index + 1, list)
     end
@@ -77,13 +73,11 @@ function Commander.prototype.command(
             error('')
         end
 
-        -- if config.main then
-        -- end
-
         table.insert(self.commands, cmd)
         table.sort(self.commands, function(a, b)
             return a.name < b.name
         end)
+
         return cmd
     else
         local cmd = command
@@ -92,31 +86,13 @@ function Commander.prototype.command(
             error('')
         end
 
-        -- if config.main then
-        -- end
-
         table.insert(self.commands, cmd)
         table.sort(self.commands, function(a, b)
             return a.name < b.name
-        end)
+        end) 
+
         return cmd
     end
-end
-
-function Commander.prototype.commandsDir(self: Commander, folderPath: string)
-    local separator = '\\'
-    local baseDirectory = self.root_path .. separator .. folderPath
-    for _, file in fs.readDir(baseDirectory) do
-        local filePath = `{baseDirectory} \\{file}`
-        if endsWith(file, '.luau') then
-            local req = require :: any
-            local data = req(filePath)
-            data.file = file
-            self:command(data.command, data.description, data)
-        end
-    end
-
-    return self
 end
 
 function Commander.prototype.findCmd(
@@ -124,13 +100,13 @@ function Commander.prototype.findCmd(
     cmd: string | { string }
 ): CommandPrototype.CommandPrototype?
     local actualCmdName = (typeof(cmd) == 'string' and { cmd } or cmd) :: { string }
-    return Table.Find(self.commands, function(command)
-        local res
-        Table.ForEach(actualCmdName, function(cm)
-            if command.name == cm or Table.Includes(command.alias, cm) then
+    return Table.find(self.commands, function(command)
+        local res = false
+        for _, cmdName in actualCmdName do
+            if command.name == cmdName or table.find(command.alias, cmdName) then
                 res = true
             end
-        end)
+        end
 
         return res
     end)
@@ -143,14 +119,14 @@ function Commander.prototype.help(self: Commander, ignore_flag: boolean?)
     Helper.formatHelp(self)
 end
 
-local function IsHex(String): boolean
-    if typeof(String) ~= 'string' then
+local function IsHex(str: string): boolean
+    if typeof(str) ~= 'string' then
         return false
     end
 
-    String = String:gsub('#', '')
+    str = str:gsub('#', '')
 
-    return string.match(String, `^%x%x%x%x%x%x$`) ~= nil
+    return string.match(str, `^%x%x%x%x%x%x$`) ~= nil
 end
 
 function Commander.prototype.applyTheme(self: Commander, theme: any)
@@ -174,18 +150,18 @@ function Commander.prototype.applyTheme(self: Commander, theme: any)
         error = '',
     }
 
-    theme = theme or require('themes/default')
+    theme = theme
 
     local default_color = chalk.white
 
     local function createTheme(base, theme, fn)
-        Table.ForEach(base, function(value, index, t)
+        for index, value in base do
             if typeof(value) == 'string' then
-                base[index] = fn(theme[index], index, t)
+                base[index] = fn(theme[index], index, base)
             elseif typeof(value) == 'table' then
                 base[index] = createTheme(base[index], theme[index], fn)
             end
-        end)
+        end
 
         return base
     end
@@ -195,7 +171,7 @@ function Commander.prototype.applyTheme(self: Commander, theme: any)
         return ThemeColor(colorize, color)
     end
 
-    self._theme = createTheme(base, theme, function(value)
+    self._theme = createTheme(base :: any, theme, function(value)
         return createColor(value :: any) :: any
     end)
 
@@ -219,35 +195,33 @@ end
 function Commander.prototype.parse(self: Commander, message: { string }?)
     local args: { string } = message and table.clone(message) or table.clone(process.args)
 
-    local parsed = Parsed(args)
+    local parsed = Parsed(args, self.debug and Logger.new('Commander') or nil)
 
-    if not parsed[1] then
+    if not (parsed :: any)[1] then
         self:run()
     else
         local cmd = self:findCmd(args[1])
         if not cmd then
             self:run()
         else
-            self:print(function()
-                parsed:setarg('_cmd', cmd.name)
-            end)
+            parsed:setarg('_cmd', cmd.name)
 
             local indexarg = 2
             if #cmd.arguments > 0 then -- Parse required and optional arguments
                 for _, cmd_arg in ipairs(cmd.arguments) do
-                    parsed[cmd_arg:name()] = cmd_arg.default
-                        or (cmd_arg.type == 'optlist' and {})
+                    (parsed :: any)[cmd_arg:name()] = cmd_arg.default
+                        or (cmd_arg.variadic and {})
                         or nil
-                    if args[indexarg] and not startsWith(args[indexarg], '-') then
-                        if cmd_arg.type == 'optlist' then
-                            parsed[cmd_arg:name()], indexarg = optlist_parser(args, indexarg)
+                    if args[indexarg] and not String.startsWith(args[indexarg], '-') then
+                        if cmd_arg.variadic then
+                            (parsed :: any)[cmd_arg:name()], indexarg = optlist_parser(args, indexarg)
                         else
                             -- parsed[cmd_arg:name()] = args[indexarg]
                             parsed:setarg(cmd_arg:name(), args[indexarg])
                             indexarg = indexarg + 1
                         end
                     else
-                        if cmd_arg.type == 'req' then -- if required argument is missing, then execute Commander:usage() to show help usage
+                        if cmd_arg.required then -- if required argument is missing, then execute Commander:usage() to show help usage
                             local usage = Helper.commandFlag(cmd) or ''
                             if usage then
                                 usage = self._theme.command.category.color('Usage:')
@@ -267,44 +241,35 @@ function Commander.prototype.parse(self: Commander, message: { string }?)
                 local opt = cmd:hasOpt(a)
                 if opt then
                     if opt.type == 'normal' then
-                        if args[ka + 1] and not startsWith(args[ka + 1], '-') then
+                        if args[ka + 1] and not String.startsWith(args[ka + 1], '-') then
                             parsed:setarg(opt:attributeName(), opt.transform(args[ka + 1]))
                             ka = ka + 2
                         else
-                            parsed:setarg(opt:attributeName(), true)
+                            parsed.help = true
+                            -- Helper.formatHelp(self, cmd)
                         end
                     else
                         parsed:setarg(opt:attributeName(), true)
                     end
-                    -- if opt.type == 'flag' then
-                    --     parsed:setarg(opt:attributeName(), true)
-                    -- elseif args[ka + 1] and not startsWith(args[ka + 1], '-') then
-                    --     parsed:setarg(opt:attributeName(), opt.transform(args[ka + 1]))
-                    --     ka = ka + 2
-                    -- else
-                    --     parsed:setarg(opt:attributeName(), true)
-                    -- end
                 end
             end
 
             -- Add default opt to parsed table if that opt is nil (not defined)
-            Table.ForEach(cmd.options, function(opt)
-                if not (opt.default == nil) and parsed[opt:attributeName()] == nil then
-                    parsed:setarg(opt:attributeName(), opt.default)
+            for _, opt in cmd.options do
+                if opt:attributeName() ~= 'help' then
+                    if (parsed :: any)[opt:attributeName()] == nil then
+                        parsed:setarg(opt:attributeName(), opt.default)
+                    end
                 end
-            end)
+            end
 
-            self:print(function()
-                if self.debug then
-                    parsed:print()
-                end
-            end)
+            parsed:print() 
 
             if parsed.help then
                 Helper.formatHelp(self, cmd)
-                -- cmd:usageExtended(self._name)
             else
-                cmd:run(parsed, cmd, self)
+                local parsedData = parsed:parse()
+                cmd:run(parsedData, cmd, self)
             end
         end
     end
@@ -339,9 +304,8 @@ function Commander.prototype.version(self: Commander, version: string)
 end
 
 function Commander.prototype.theme(self: Commander, theme: string | ThemeConfig)
-    local req = require :: any
     if typeof(theme) == 'string' then
-        theme = req('./themes/' .. theme)
+        theme = Themes[theme]
     end
 
     self:applyTheme(theme)
@@ -368,20 +332,7 @@ function Commander.interface.new(name: string?, title: string?, opt: CommanderSe
         commands = {},
         debug = setup.debug :: boolean 
     }
-    -- if setup.name then
 
-    -- end
-    -- local actualSetup: CommanderSetup = Table.Reconcile(setup, {
-    --     _name = '',
-    --     tag = '',
-    --     _description = '',
-    --     _version = '0.1.0',
-    --     author = '',
-    --     root_path = '',
-    --     prevent_help = false,
-    --     default_action = nil,
-    --     commands = {},
-    -- })
 
     local commander = (
         setmetatable(config, {

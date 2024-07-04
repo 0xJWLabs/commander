@@ -4,7 +4,6 @@
     "*": false
   },
   "aliases": {
-    "deps": "./deps",
-    "std": "./std"
+    "commander": "./src"
   }
 }

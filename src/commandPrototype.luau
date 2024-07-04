@@ -1,7 +1,7 @@
-local ArgumentModule = require('argument')
-local Option = require('option')
-local Table = require('utils/table')
-local fstring = require('utils/fstring')
+local ArgumentModule = require('./argument')
+local Option = require('./option')
+local Table = require('./utils/table')
+local String = require('./utils/string')
 
 local Argument = ArgumentModule.Argument
 
@@ -81,7 +81,7 @@ function CommandPrototype.prototype.replaceArgument(
 end
 
 function CommandPrototype.prototype.hasOpt(self: CommandPrototype, opt: string): Option?
-    return Table.Find(self.options, function(value)
+    return Table.find(self.options, function(value)
         if value.long == opt or value.short == opt then
             return true
         end
@@ -92,9 +92,9 @@ end
 
 function CommandPrototype.prototype.names(self: CommandPrototype)
     local names = { self.name }
-    Table.ForEach(self.alias, function(alias)
+    for _, alias in self.alias do
         table.insert(names, alias)
-    end)
+    end
 
     return names
 end
@@ -234,7 +234,7 @@ function CommandPrototype.prototype.checkParsed(self: CommandPrototype, parsed)
         {} :: { { name: string, type: string, typearg: string } }
     if #self.arguments > 0 then -- Parse required and optional arguments
         for _, cmd_arg in ipairs(self.arguments) do
-            if parsed[cmd_arg:name()] == nil and cmd_arg.type == 'req' then
+            if parsed[cmd_arg:name()] == nil and cmd_arg.required then
                 table.insert(
                     required,
                     { name = cmd_arg:name(), type = cmd_arg.type :: string, typearg = 'argument' }
@@ -243,9 +243,10 @@ function CommandPrototype.prototype.checkParsed(self: CommandPrototype, parsed)
         end
     end
     local err = 'Default action has required arguments what are not defined: '
-    Table.ForEach(required, function(value, _)
+    for _, value in required do
         err ..= value.name .. ', '
-    end)
+    end
+
     if not (#required == 0) then
         error(err)
     end
@@ -259,8 +260,8 @@ function CommandPrototype.prototype.__parser(
 )
     local result = {}
     defaults = defaults or {}
-    local inputs = fstring.split(command, '%S+')
-    Table.ForEach(inputs, function(input, index)
+    local inputs = String.split(command, '%s+')
+    for index, input in inputs do
         local word = string.match(input, '[%w_-]+') :: string
         local config = defaults[word]
         if not (typeof(config) == 'table') then
@@ -302,7 +303,7 @@ function CommandPrototype.prototype.__parser(
         else
             error('Defining command argument. command: ' .. command .. ' word: ' .. word)
         end
-    end)
+    end
 
     return result
 end

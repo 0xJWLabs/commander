@@ -1,4 +1,4 @@
-local fstring = require("utils/fstring")
+local String = require('./utils/string')
 
 local Argument = {}
 
@@ -23,7 +23,7 @@ function Argument.interface.new(params: ArgumentParams): Argument
         variadic = false,
         description = params.description or '',
         type = params.type,
-        default = params.default,
+        default = params.default == 'nil' and nil or params.default,
     }
 
     local arg = (setmetatable(argument, {
@@ -34,15 +34,15 @@ function Argument.interface.new(params: ArgumentParams): Argument
 
     if firstChar == '<' then
         arg.required = true
-        arg._name = fstring.slice(name, 2, -1)
+        arg._name = String.slice(name, 2, -1)
     elseif firstChar == '[' then
         arg.required = false
-        arg._name = fstring.slice(name, 2, -1)
+        arg._name = String.slice(name, 2, -1)
     end
 
-    if #arg._name > 3 and fstring.slice(arg._name, -3) == '...' then
+    if #arg._name > 3 and String.slice(arg._name, -3) == '...' then
         arg.variadic = true
-        arg._name = fstring.slice(arg._name, 1, -3)
+        arg._name = String.slice(arg._name, 1, -3)
     end
 
     return arg

@@ -1,42 +1,5 @@
--- local Closers = {
---     req = {left = "<", right = ">"},
---     opt = {left = "[", right = "]"},
---     optlist = {left = "[...", right = "]"}
--- }
-
-local fstring = require("utils/fstring")
-
-type reduceFn<T, U> = (previousValue: U, currentValue: T, currentIndex: number, array: { T }) -> U
-
-local function reduce<T, U>(array: { T}, callback: reduceFn<T, U>, initialValue: U?): U
-    if typeof(array) ~= "table" then
-        error(string.format("reduce called on %s", typeof(array)))
-    end
-    if typeof(callback) ~= "function" then
-        error("callback is not a function")
-    end
-
-	local length = #array
-
-	local value: T | U
-	local initial = 1
-
-	if initialValue ~= nil then
-		value = initialValue
-	else
-		initial = 2
-		if length == 0 then
-			error("reduce of empty array with no initial value")
-		end
-		value = array[1]
-	end
-
-	for i = initial, length do
-		value = callback(value :: U, array[i], i, array)
-	end
-
-	return value :: U
-end
+local Table = require("./utils/table")
+local String = require("./utils/string")
 
 local function splitOptionFlags(flags: string)
     local shortFlag
@@ -80,12 +43,12 @@ local function splitOptionFlags(flags: string)
     return { shortFlag = shortFlag, longFlag = longFlag, optType = optType }
 end
 
-local function camelcase(str)
+local function camelcase(str: string)
    local splittedString = string.split(str, '-')
    
-   return reduce(splittedString, function(str: string, word)
+   return Table.reduce(splittedString, function(str: string, word)
         local wordSplit = string.split(word, '')
-        return str .. wordSplit[1]:upper() .. fstring.slice(word, 2);
+        return str .. wordSplit[1]:upper() .. String.slice(word, 2);
    end)
 end
 
@@ -124,7 +87,7 @@ function Option.interface.new(params: OptionParams): Option
         hide = params.hide,
         description = params.description or '',
         type = optionFlags.optType,
-        default = params.default,
+        default = params.default == 'nil' and nil or params.default,
         file = params.file,
         transform = if params.transform ~= nil and typeof(params.transform) == "function" then params.transform else function(param) return param end,
     }

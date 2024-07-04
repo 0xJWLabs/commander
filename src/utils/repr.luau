@@ -1,8 +1,6 @@
-local Chalk = require("../chalk")
+local Chalk = require("./chalk")
+local Table = require("./table")
 
-local BaseTable = require("base")
-
-local Table = {}
 
 export type ReprOptions = {
     spaces: number?,
@@ -78,9 +76,9 @@ local Colors = {
 local INDENT
 local shown
 local depth = 0
-function Table.repr<T>(value: T, reprOptions: ReprOptions?): string
+local function repr<T>(value: T, reprOptions: ReprOptions?): string
     local reprSettings: ReprOptions = reprOptions or {}
-    reprSettings = BaseTable.Reconcile(reprSettings, DEFAULT_SETTINGS)
+    reprSettings = Table.reconcile(reprSettings, DEFAULT_SETTINGS)
 	INDENT = (" "):rep(reprSettings.spaces :: number)
 	if reprSettings.tabs then
 		INDENT = "\t"
@@ -114,7 +112,7 @@ function Table.repr<T>(value: T, reprOptions: ReprOptions?): string
 		shown[v] = true
 		local str = "{" .. (reprSettings.pretty and ("\n" .. INDENT .. tabs) or "")
 		local isArray = true
-		for k, v in v do
+		for k, _ in v do
 			if type(k) ~= "number" then
 				isArray = false
 				break
@@ -128,7 +126,7 @@ function Table.repr<T>(value: T, reprOptions: ReprOptions?): string
 						.. (reprSettings.pretty and ("\n" .. INDENT .. tabs) or " ")
 				end
 				depth = depth + 1
-				str = str .. Table.repr(v[i])
+				str = str .. repr(v[i])
 				depth = depth - 1
 			end
 		else
@@ -136,8 +134,8 @@ function Table.repr<T>(value: T, reprOptions: ReprOptions?): string
 			local keyValueStrings = {}
 			for k, v in v do
 				depth = depth + 1
-				local kStr = isLuaIdentifier(k) and ("[\"" .. k .. "\"]") or ("[" .. Table.repr(k) .. "]")
-				local vStr = Table.repr(v)
+				local kStr = isLuaIdentifier(k) and ("[\"" .. k .. "\"]") or ("[" .. repr(k) .. "]")
+				local vStr = repr(v)
 				table.insert(keyOrder, kStr)
 				keyValueStrings[kStr] = vStr
 				depth = depth - 1
@@ -167,8 +165,4 @@ function Table.repr<T>(value: T, reprOptions: ReprOptions?): string
 	end
 end
 
-setmetatable(Table, {
-    __index = BaseTable
-})
-
-return Table
+return repr

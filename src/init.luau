@@ -1,12 +1,12 @@
-local Commander = require("commander")
-local CommandPrototype = require("commandPrototype")
-local Option = require("option")
-local Argument = require("argument")
+local Commander = require("./commander")
+local CommandPrototype = require("./commandPrototype")
+local Option = require("./option")
+local Argument = require("./argument")
 
 export type Commander = Commander.Commander
-export type Command = CommandPrototype.CommandPrototype<Commander>
-export type Option = Option.Option<Commander>
-export type Argument = Argument.Argument<Commander>
+export type Command = CommandPrototype.CommandPrototype
+export type Option = Option.Option
+export type Argument = Argument.Argument
 
 return {
     Commander = Commander,
