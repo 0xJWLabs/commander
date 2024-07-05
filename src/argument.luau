@@ -9,7 +9,7 @@ Argument.prototype.__type = 'Argument'
 
 local function humanReadableArgName(arg: Argument): string
     local nameOutput = arg:name() .. (arg.variadic == true and '...' or '')
-    return arg.required and '<' .. nameOutput .. '>' or '[' .. nameOutput  .. ']'
+    return arg.required and '<' .. nameOutput .. '>' or '[' .. nameOutput .. ']'
 end
 
 function Argument.prototype.name(self: Argument): string
@@ -26,9 +26,11 @@ function Argument.interface.new(params: ArgumentParams): Argument
         default = params.default == 'nil' and nil or params.default,
     }
 
-    local arg = (setmetatable(argument, {
-        __index = Argument.prototype
-    }) :: any) :: Argument
+    local arg = (
+        setmetatable(argument, {
+            __index = Argument.prototype,
+        }) :: any
+    ) :: Argument
 
     local firstChar = string.sub(name, 1, 1)
 
@@ -52,7 +54,7 @@ export type ArgumentParams = {
     name: string,
     type: string,
     default: any?,
-    description: string?
+    description: string?,
 }
 
 export type Argument = {
@@ -66,5 +68,5 @@ export type Argument = {
 
 return {
     Argument = Argument.interface,
-    humanReadableArgName = humanReadableArgName
-} 
+    humanReadableArgName = humanReadableArgName,
+}

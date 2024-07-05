@@ -5,3 +5,6 @@ globals:
   require:
     args:
     - type: string
+  warn:
+    args:
+    - type: tuple

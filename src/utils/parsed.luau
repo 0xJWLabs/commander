@@ -1,5 +1,5 @@
-local Logger = require('./utils/logger')
-local Table = require("./utils/table")
+local Logger = require('./logger')
+local Table = require('./table')
 
 type Logger = Logger.Logger
 
@@ -18,7 +18,7 @@ local function stringify(t: Parsed)
     for _, key in ordered do
         local value = (t :: any)[key]
         if not (type(value) == 'table') then
-            if value == "nil" then
+            if value == 'nil' then
                 value = nil
             end
             table.insert(res, { key, value })

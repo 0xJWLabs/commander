@@ -1,18 +1,14 @@
-local Commander = require("./commander")
-local CommandPrototype = require("./commandPrototype")
-local Option = require("./option")
-local Argument = require("./argument")
+local Argument = require('./argument')
+local Command = require('./command')
+local Option = require('./option')
 
-export type Commander = Commander.Commander
-export type Command = CommandPrototype.CommandPrototype
+export type Command = Command.Command 
 export type Option = Option.Option
 export type Argument = Argument.Argument
 
 return {
-    Commander = Commander,
-    Command = CommandPrototype,
+    Command = Command,
     Option = Option,
     Argument = Argument,
-    program = Commander.new(),
-    debugProgram = Commander.new(nil, nil, { debug = true })
+    program = Command.new(),
 }

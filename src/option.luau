@@ -1,5 +1,5 @@
-local Table = require("./utils/table")
-local String = require("./utils/string")
+local String = require('./utils/string')
+local Table = require('./utils/table')
 
 local function splitOptionFlags(flags: string)
     local shortFlag
@@ -9,47 +9,44 @@ local function splitOptionFlags(flags: string)
     -- Split flags based on spaces or commas followed by any number of spaces
     local flagParts = {}
 
-    for part in flags:gmatch("[^%s|,]+") do
+    for part in flags:gmatch('[^%s|,]+') do
         table.insert(flagParts, part)
-    end 
+    end
 
-
-    if #flagParts > 1 and not flagParts[2]:match("^%[<[") then
+    if #flagParts > 1 and not flagParts[2]:match('^%[<[') then
         shortFlag = table.remove(flagParts, 1)
     end
 
-
     longFlag = table.remove(flagParts, 1)
-
 
     local optType = flagParts[1] and 'normal' or 'flag'
 
     -- local optType = flagParts[1] and string.gsub(flagParts[1], "[<>%[%]]", "") or 'flag'
 
     -- Add support for lone short flag without significantly changing parsing
-    if not shortFlag and longFlag and longFlag:match("^%-[^%-]$") then
+    if not shortFlag and longFlag and longFlag:match('^%-[^%-]$') then
         shortFlag = longFlag
         longFlag = nil
     end
 
-	if longFlag then
-		longFlag = string.gsub(longFlag, '^-%-', '')
-	end
+    if longFlag then
+        longFlag = string.gsub(longFlag, '^-%-', '')
+    end
 
-	if shortFlag then
-		shortFlag = string.gsub(shortFlag, '^-', '')
-	end
+    if shortFlag then
+        shortFlag = string.gsub(shortFlag, '^-', '')
+    end
 
     return { shortFlag = shortFlag, longFlag = longFlag, optType = optType }
 end
 
 local function camelcase(str: string)
-   local splittedString = string.split(str, '-')
-   
-   return Table.reduce(splittedString, function(str: string, word)
+    local splittedString = string.split(str, '-')
+
+    return Table.reduce(splittedString, function(str: string, word)
         local wordSplit = string.split(word, '')
-        return str .. wordSplit[1]:upper() .. String.slice(word, 2);
-   end)
+        return str .. wordSplit[1]:upper() .. String.slice(word, 2)
+    end)
 end
 
 local Option = {}
@@ -77,19 +74,30 @@ function Option.prototype.attributeName(self: Option): string
     return camelcase(self:name())
 end
 
+function Option.prototype.hide(self: Option, hide: boolean?): Option
+    local actualHide: boolean = hide == nil and true or hide :: boolean
+    self.hidden = actualHide
+
+    return self
+end
+
 function Option.interface.new(params: OptionParams): Option
     local flags = params.flags
     local optionFlags = splitOptionFlags(flags)
     local argument = {
-        short = optionFlags.shortFlag and "-" .. optionFlags.shortFlag or nil,
-        long = optionFlags.longFlag and "--" .. optionFlags.longFlag or nil,
+        short = optionFlags.shortFlag and '-' .. optionFlags.shortFlag or nil,
+        long = optionFlags.longFlag and '--' .. optionFlags.longFlag or nil,
         flags = flags,
-        hide = params.hide,
+        hidden = params.hidden,
         description = params.description or '',
         type = optionFlags.optType,
         default = params.default == 'nil' and nil or params.default,
         file = params.file,
-        transform = if params.transform ~= nil and typeof(params.transform) == "function" then params.transform else function(param) return param end,
+        transform = if params.transform ~= nil and typeof(params.transform) == 'function'
+            then params.transform
+            else function(param)
+                return param
+            end,
     }
 
     if argument.type == 'flag' then
@@ -97,7 +105,7 @@ function Option.interface.new(params: OptionParams): Option
     end
 
     return (setmetatable(argument, {
-        __index = Option.prototype
+        __index = Option.prototype,
     }) :: any) :: Option
 end
 
@@ -108,21 +116,21 @@ export type OldOptionParams = {
     type: string?,
     default: any?,
     file: any?,
-    hide: boolean?,
-    transform: ((param: any) -> any)?
+    hidden: boolean?,
+    transform: ((param: any) -> any)?,
 }
 
 export type OptionParams = {
-    flags: string, 
+    flags: string,
     description: string?,
     default: any?,
     file: any?,
     transform: ((param: any) -> any)?,
-    hide: boolean?,
+    hidden: boolean?,
 }
 
 export type Option = {
-    hide: boolean?,
+    hidden: boolean?,
     short: string?,
     long: string?,
     flags: string,
@@ -130,7 +138,7 @@ export type Option = {
     type: string,
     default: any?,
     file: any,
-    transform: ((param: any) -> any),
+    transform: (param: any) -> any,
 } & typeof(Option.prototype)
 
 return Option.interface

@@ -3,7 +3,12 @@ local Table = {}
 export type Table<T> = { T }
 export type Object<K, V> = { [K]: V }
 type callbackFn<T> = (value: T, index: number, array: Table<T>) -> boolean
-type reduceFn<T, U> = (previousValue: U, currentValue: T, currentIndex: number, array: Table<T>) -> U
+type reduceFn<T, U> = (
+    previousValue: U,
+    currentValue: T,
+    currentIndex: number,
+    array: Table<T>
+) -> U
 type predicateFunction<K, V> = (value: V, index: K, array: Object<K, V>) -> boolean
 type mapCallbackFn<T, U> = (value: T, index: number, Table<T>) -> U
 
@@ -23,11 +28,11 @@ end
 
 function Table.find<K, V>(t: Object<K, V>, predicate: predicateFunction<K, V>, start: number?): V?
     if typeof(t) ~= 'table' then
-		error(string.format("Table.spread called on non-table %s", typeof(t)))
-	end	
+        error(string.format('Table.spread called on non-table %s', typeof(t)))
+    end
     if start then
         if not Table.isArray(t) then
-            error(string.format("Table.spread called on non-array %s", 'object')) 
+            error(string.format('Table.spread called on non-array %s', 'object'))
         end
         local length = #t
         for i = start, length do
@@ -49,12 +54,12 @@ end
 
 function Table.spread<T>(array: Table<T>, i: number?, j: number?): ...T
     if not Table.isArray(array) then
-		error(string.format("Table.spread called on non-array %s", typeof(array)))
-	end	
+        error(string.format('Table.spread called on non-array %s', typeof(array)))
+    end
     local startIndex = i or 1
     local endIndex = j or #array
     if startIndex > endIndex then
-        return  -- Return nothing if start index exceeds end index
+        return -- Return nothing if start index exceeds end index
     end
 
     local results = {}
@@ -72,52 +77,52 @@ function Table.spread<T>(array: Table<T>, i: number?, j: number?): ...T
         end
     end
 
-    return spread_helper(results, 1)	
+    return spread_helper(results, 1)
 end
 
 function Table.reduce<T, U>(array: Table<T>, callback: reduceFn<T, U>, initialValue: U?): U
     if not Table.isArray(array) then
-		error(string.format("Table.reduce called on non-table %s", typeof(array)))
-	end	 
-    if typeof(callback) ~= "function" then
-        error("callback is not a function")
+        error(string.format('Table.reduce called on non-table %s', typeof(array)))
+    end
+    if typeof(callback) ~= 'function' then
+        error('callback is not a function')
     end
 
-	local length = #array
+    local length = #array
 
-	local value: T | U
-	local initial = 1
+    local value: T | U
+    local initial = 1
 
-	if initialValue ~= nil then
-		value = initialValue
-	else
-		initial = 2
-		if length == 0 then
-			error("reduce of empty array with no initial value")
-		end
-		value = array[1]
-	end
+    if initialValue ~= nil then
+        value = initialValue
+    else
+        initial = 2
+        if length == 0 then
+            error('reduce of empty array with no initial value')
+        end
+        value = array[1]
+    end
 
-	for i = initial, length do
-		value = callback(value :: U, array[i], i, array)
-	end
+    for i = initial, length do
+        value = callback(value :: U, array[i], i, array)
+    end
 
-	return value :: U
+    return value :: U
 end
 
 function Table.filter<T, U>(array: Table<T>, callback: callbackFn<T>): Table<T>
-    if typeof(array) ~= "table" then
-        error(string.format("Array.filter called on %s", typeof(array)))
+    if typeof(array) ~= 'table' then
+        error(string.format('Array.filter called on %s', typeof(array)))
     end
 
-    if typeof(callback) ~= "function" then
-        error("callback is not a function")
+    if typeof(callback) ~= 'function' then
+        error('callback is not a function')
     end
 
     local result: Table<T> = {}
 
     for i, element in array do
-        if callback(element, i , array) then
+        if callback(element, i, array) then
             table.insert(result, element)
         end
     end
@@ -127,13 +132,13 @@ end
 
 function Table.map<T, U, V>(array: Table<T>, callback: mapCallbackFn<T, U>): Table<U>
     if not Table.isArray(array) then
-        error(string.format("Array.map called on non-array %s", typeof(array)))
+        error(string.format('Array.map called on non-array %s', typeof(array)))
     end
-    if typeof(callback) ~= "function" then
-        error("callback is not a function")
+    if typeof(callback) ~= 'function' then
+        error('callback is not a function')
     end
 
-	local new = {}
+    local new = {}
 
     for i, value in array do
         local mappedValue: U = callback(value, i, array)
@@ -148,37 +153,69 @@ end
 
 function Table.copy<K, V>(t: Object<K, V>, deep: boolean?): Object<K, V>
     if not deep then
-		return table.clone(t)
+        return table.clone(t)
+    end
+    local clone = table.clone(t)
+    for index, value in clone do
+        if typeof(value) == 'table' then
+            clone[index] = Table.copy(value, deep) :: any
+        end
+    end
+    return clone
+end
+
+function Table.concat<T, S>(source: Table<T> | T, ...: Table<S> | S): Table<T> & Table<S>
+	local array
+	local elementCount = 0
+
+	if Table.isArray(source) then
+		array = table.clone(source :: Table<T>)
+		elementCount = #(source :: Table<T>)
+	else
+		elementCount += 1
+		array = {}
+		array[elementCount] = source :: T
 	end
-	local clone = table.clone(t)
-	for index, value in clone do
-		if typeof(value) == "table" then
-			clone[index] = Table.copy(value, deep) :: any 
-		end
+
+	for i = 1, select("#", ...) do
+		local value = select(i, ...)
+		local valueType = typeof(value)
+        if value ~= nil then
+            if valueType == "table" then
+                for k = 1, #value do
+                    elementCount += 1
+                    array[elementCount] = value[k]
+                end
+            else
+                elementCount += 1
+                array[elementCount] = value
+            end
+        end
 	end
-	return clone 
+
+	return (array :: any) :: Table<T> & Table<S> 
 end
 
 function Table.reconcile<S, T>(src: S, template: T): S & T
-    assert(type(src) == "table", "First argument must be a table")
-	assert(type(template) == "table", "Second argument must be a table")
+    assert(type(src) == 'table', 'First argument must be a table')
+    assert(type(template) == 'table', 'Second argument must be a table')
 
     local tbl = table.clone(src)
 
     for key, value in template :: Object<any, any> do
         if tbl[key] == nil then
-			if typeof(value) == "table" then
-				tbl[key] = Table.copy(value :: any, true)
-			else
-				tbl[key] = value
-			end
-		elseif typeof((template :: {})[key]) == "table" then
-			if typeof(value) == "table" then
-				tbl[key] = Table.reconcile(value :: any, (template :: {})[key])
-			else
-				tbl[key] = Table.copy((template :: {})[key], true)
-			end
-		end
+            if typeof(value) == 'table' then
+                tbl[key] = Table.copy(value :: any, true)
+            else
+                tbl[key] = value
+            end
+        elseif typeof((template :: {})[key]) == 'table' then
+            if typeof(value) == 'table' then
+                tbl[key] = Table.reconcile(value :: any, (template :: {})[key])
+            else
+                tbl[key] = Table.copy((template :: {})[key], true)
+            end
+        end
     end
 
     return (tbl :: any) :: S & T

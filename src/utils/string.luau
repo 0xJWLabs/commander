@@ -78,7 +78,7 @@ function String.padEnd(str: string, len: number, pad: string?)
     return string.sub(paddedStr, 1, strLen < len and len or strLen)
 end
 
-function String.gsplit(text: string, pattern: string, plain: boolean?): () -> (...string)
+function String.gsplit(text: string, pattern: string, plain: boolean?): () -> ...string
     local splitStart, length = 1, #text
     return function(): ...string
         if splitStart then
@@ -112,4 +112,6 @@ function String.split(text: string, pattern: string, plain: boolean?)
     return ret
 end
 
-return String
+return setmetatable(String, {
+    __index = string
+})
