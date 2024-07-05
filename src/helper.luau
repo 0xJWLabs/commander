@@ -88,8 +88,8 @@ function Helper.subCommandTerm(cmd: any)
 
     return cmd._name
         .. (cmd._aliases[1] and '|' .. cmd._aliases[1] or '')
-        .. (#cmd.options > 0 and ' [options]' or '')
         .. (args and ' ' .. args or '')
+        .. (#cmd.options > 0 and ' [options]' or '')
 end
 
 function Helper.subCommandDescription(cmd: any)
