@@ -62,7 +62,7 @@ local function splitOptionFlags(flags: string)
     return { shortFlag = shortFlag, longFlag = longFlag, optType = optType }
 end
 
-local Command = {} 
+local Command = {}
 
 Command.prototype = {}
 Command.interface = {}
@@ -112,10 +112,7 @@ function Command.prototype.names(self: Command)
     return names
 end
 
-function Command.prototype.description(
-    self: Command,
-    description: string
-): Command
+function Command.prototype.description(self: Command, description: string): Command
     self._description = description
 
     return self
@@ -300,26 +297,17 @@ function Command.prototype.__parser(self: Command, command: string, defaults: an
     return result
 end
 
-function Command.prototype.argumentCreator(
-    _: Command,
-    options: ArgumentParams
-): Argument
+function Command.prototype.argumentCreator(_: Command, options: ArgumentParams): Argument
     local argument = Argument.new(options)
     return argument
 end
 
-function Command.prototype.optionCreator(
-    _: Command,
-    options: OptionParams
-): Option
+function Command.prototype.optionCreator(_: Command, options: OptionParams): Option
     local option = Option.new(options)
     return option
 end
 
-function Command.prototype.findCmd(
-    self: Command,
-    cmd: string | { string }
-): Command?
+function Command.prototype.findCmd(self: Command, cmd: string | { string }): Command?
     local actualCmdName = (typeof(cmd) == 'string' and { cmd } or cmd) :: { string }
     return Table.find(self.commands, function(command)
         local res = false
@@ -386,8 +374,6 @@ function Command.prototype.parse(self: Command, message: { string }?)
     local args: { string } = message and table.clone(message) or table.clone(process.args)
 
     local parsed = Parsed(args, nil)
-
-    
 
     if not (parsed :: any)[1] then
         self:run()
@@ -499,11 +485,9 @@ function Command.interface.new(command: string?, config: Config?): Command
         parent = nil,
     }
 
-    local cmd = (
-        setmetatable(self, {
-            __index = Command.prototype,
-        }) :: any
-    ) :: Command
+    local cmd = (setmetatable(self, {
+        __index = Command.prototype,
+    }) :: any) :: Command
 
     -- cmd:__parser(command, cmd.positional_args)
     -- assert(cmd.name, 'Command name is required')

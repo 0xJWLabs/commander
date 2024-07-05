@@ -22,7 +22,7 @@ return {
         cli = {
             title = {
                 color = '#89b4fa',
-                style = 'bold'
+                style = 'bold',
             },
             text = '#cdd6f4',
             category = '#f9e2af',

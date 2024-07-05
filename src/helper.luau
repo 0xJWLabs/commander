@@ -1,11 +1,11 @@
 local Argument = require('./argument')
+local Chalk = require('./utils/chalk')
+local Config = require('./config')
 local Option = require('./option')
 local String = require('./utils/string')
 local Table = require('./utils/table')
-local Themes = require('./colors/themes')
-local Config = require('./config')
-local Chalk = require('./utils/chalk')
 local ThemeColor = require('./colors/themeColor')
+local Themes = require('./colors/themes')
 
 local Helper = {}
 
@@ -79,11 +79,17 @@ function Helper.padWidth(cmd)
 end
 
 function Helper.subCommandTerm(cmd: any)
-    local args = table.concat(Table.map(cmd.registeredArguments, function(arg)
-        return Argument.humanReadableArgName(arg)
-    end), ' ')
-  
-    return cmd._name .. (cmd._aliases[1] and '|' .. cmd._aliases[1] or '') .. (#cmd.options > 0 and ' [options]' or '') .. (args and ' ' .. args or '')
+    local args = table.concat(
+        Table.map(cmd.registeredArguments, function(arg)
+            return Argument.humanReadableArgName(arg)
+        end),
+        ' '
+    )
+
+    return cmd._name
+        .. (cmd._aliases[1] and '|' .. cmd._aliases[1] or '')
+        .. (#cmd.options > 0 and ' [options]' or '')
+        .. (args and ' ' .. args or '')
 end
 
 function Helper.subCommandDescription(cmd: any)
@@ -101,7 +107,8 @@ end
 function Helper.optionDescription(option: Option.Option)
     return option.description
         .. (
-            not (option.default == nil) and ' (default: "' .. tostring(option.default) .. '")' or ''
+            not (option.default == nil) and ' (default: "' .. tostring(option.default) .. '")'
+            or ''
         )
 end
 
@@ -134,7 +141,7 @@ end
 function Helper.commandUsage(cmd: any): string?
     local cmdName = cmd._name
     if cmd._aliases[1] then
-       cmdName ..= '|' .. cmd._aliases[1]
+        cmdName ..= '|' .. cmd._aliases[1]
     end
     local ancestorCmdNames = ''
     local ancestorCmd = cmd.parent
@@ -144,7 +151,6 @@ function Helper.commandUsage(cmd: any): string?
     end
 
     local theme = Helper.getTheme() :: any
-    
 
     return theme.command.definition.color(ancestorCmdNames .. cmdName .. ' ' .. cmd:usage())
 end
@@ -158,9 +164,11 @@ function Helper.visibleOptions(cmd: any): { Option.Option }
 end
 
 function Helper.visibleArguments(cmd: any)
-    if Table.find(cmd.registeredArguments, function(argument)
-        return argument.description
-    end) then
+    if
+        Table.find(cmd.registeredArguments, function(argument)
+            return argument.description
+        end)
+    then
         return cmd.registeredArguments
     end
 
@@ -181,7 +189,6 @@ function Helper.formatHelp(cmd: any)
     local itemIndentWidth = 2
     local itemSeparatorWidth = 2
 
-
     local function formatItem(term: string, description: string?)
         if description then
             local fullText = `{String.padEnd(term, termWidth + itemSeparatorWidth)}{description}`
@@ -193,16 +200,16 @@ function Helper.formatHelp(cmd: any)
     end
 
     local function addIndentation(textArray)
-        local indent = string.rep(" ", itemIndentWidth)
+        local indent = string.rep(' ', itemIndentWidth)
         local result = {}
         for _, line in ipairs(textArray) do
             table.insert(result, indent .. line)
         end
-        return table.concat(result, "\n")
+        return table.concat(result, '\n')
     end
 
     local function formatList(textArray: Table.Table<string>)
-        return addIndentation(textArray) 
+        return addIndentation(textArray)
     end
 
     local categoryColor = cmd.parent and theme.command.category or theme.cli.category
@@ -210,134 +217,67 @@ function Helper.formatHelp(cmd: any)
     local output = {}
 
     if not cmd.parent then
-        output = { `{theme.cli.title.color(theme.cli.title.style(Config.Title))}`, ''}
+        output = { `{theme.cli.title.color(theme.cli.title.style(Config.Title))}`, '' }
         Table.concat(output, { `{categoryColor.color(`Usage:`)} {Helper.commandUsage(cmd)}`, '' })
     else
-        output = { `{categoryColor.color(`Usage:`)} {Helper.commandUsage(cmd)}`, ''} 
+        output = { `{categoryColor.color(`Usage:`)} {Helper.commandUsage(cmd)}`, '' }
     end
-
 
     local commandDescription = Helper.commandDescription(cmd)
     if #commandDescription > 0 then
         output = Table.concat(output, {
             Helper.commandDescription(cmd),
-            ''
+            '',
         })
     end
 
     local argumentList = Table.map(Helper.visibleArguments(cmd), function(arg)
-        return formatItem(theme.command.argument.color(Helper.argumentTerm(arg)), Helper.argumentDescription(arg))
+        return formatItem(
+            theme.command.argument.color(Helper.argumentTerm(arg)),
+            Helper.argumentDescription(arg)
+        )
     end)
 
     if #argumentList > 0 then
-        output = Table.concat(output, { `{categoryColor.color(`Arguments:`)}`, formatList(argumentList), ''})
+        output = Table.concat(
+            output,
+            { `{categoryColor.color(`Arguments:`)}`, formatList(argumentList), '' }
+        )
     end
 
     local optionList = Table.map(Helper.visibleOptions(cmd), function(opt)
-        return formatItem(theme.command.option.color(Helper.optionTerm(opt)), Helper.optionDescription(opt))
+        return formatItem(
+            theme.command.option.color(Helper.optionTerm(opt)),
+            Helper.optionDescription(opt)
+        )
     end)
 
     if #optionList > 0 then
-        output = Table.concat(output, { `{categoryColor.color(`Options:`)}`, formatList(optionList), ''})
+        output = Table.concat(
+            output,
+            { `{categoryColor.color(`Options:`)}`, formatList(optionList), '' }
+        )
     end
 
     local commandList = Table.map(Helper.visibleCommands(cmd), function(cmd)
-        return formatItem(theme.command.definition.color(Helper.subCommandTerm(cmd)), Helper.subCommandDescription(cmd))
+        return formatItem(
+            theme.command.definition.color(Helper.subCommandTerm(cmd)),
+            Helper.subCommandDescription(cmd)
+        )
     end)
 
     if #commandList > 0 then
-        output = Table.concat(output, { `{categoryColor.color(`Commands:`)}`, formatList(commandList), ''})
+        output = Table.concat(
+            output,
+            { `{categoryColor.color(`Commands:`)}`, formatList(commandList), '' }
+        )
     end
 
     local result = table.concat(output, '\n')
 
     print(result)
 
-    return result 
-end
-
-function Helper._formatHelp(cmd: any)
-    if cmd then
-        local padWidth = Helper.padWidth(cmd)
-        print(padWidth)
-        local usage = 'Usage: ' .. Helper.subCommandTerm(cmd)
-        usage = usage .. '\nName: ' .. cmd._name
-        if #cmd.alias > 0 then
-            usage = usage
-                .. '; alias: '
-                .. table.concat(cmd.alias, ', ')
-        end
-        usage = usage .. '\n'
-        if #Helper.commandDescription(cmd) > 0 then
-            usage = usage
-                .. 'Description: '
-                .. Helper.commandDescription(cmd)
-                .. '\n'
-        end
-        if #cmd.arguments > 0 then
-            usage = usage .. 'Arguments:\n'
-            for _, argument in cmd.arguments do
-                local Term = Helper.argumentTerm(argument)
-                usage ..= ' ' .. String.padEnd(Term, padWidth + 2, ' ') .. ' ' .. Helper.argumentDescription(argument)
-                .. '\n'
-            end
-        end
-        if #cmd.options > 0 then
-            usage = usage .. 'Options:\n'
-            local optionList = Helper.visibleOptions(cmd)
-            for _, opt in optionList do
-                local term = Helper.optionTerm(opt)
-                usage ..= ' ' .. String.padEnd(term, padWidth + 2, ' ') .. ' ' .. Helper.optionDescription(opt)
-                .. '\n'
-            end
-        end
-        print(usage)
-    else
-        -- local padWidth = Helper.longestCommandTermLength(commander)
-        -- print(
-        --     commander._theme.cli.title.color(
-        --         commander._title
-        --             .. ' (v'
-        --             .. commander._version
-        --             .. ')'
-        --             .. ((#commander.author > 0 and ' by ' .. commander.author) or '')
-        --             .. '\n'
-        --     )
-        --         .. commander._theme.cli.category.color('Usage: ')
-        --         .. commander._name
-        --         .. ' <command> [options] '
-        -- )
-        -- if #commander._description > 0 then
-        --     print(commander._theme.cli.category.color('Description: ') .. commander._description)
-        -- end
-        -- if commander.default_action and commander.default_action_command then
-        --     print(
-        --         commander._theme.cli.category.color('Default command: ')
-        --             .. commander.default_action_command.name
-        --             .. (
-        --                 (
-        --                     #commander.default_action_command._description > 0
-        --                     and ' => ' .. commander.default_action_command._description
-        --                 ) or ''
-        --             )
-        --     )
-        -- end
-        -- commander._theme.cli.category('Commands:')
-        -- for _, cmd in commander.commands do
-        --     local term = Helper.commandTerm(commander, cmd) or ''
-
-        --     print(
-        --         String.padEnd(commander._theme.command.definition.color(term), padWidth + 2, ' ')
-        --             .. commander._theme.command.description.color(Helper.commandDescription(cmd))
-        --     )
-        -- end
-        -- print()
-        -- print(
-        --     commander._theme.cli.category.color('Use: ')
-        --         .. commander._theme.command.definition.color(commander._name .. ' help <command>')
-        --         .. ' to get more info about that command'
-        -- )
-    end
+    return result
 end
 
 function Helper.getTheme()
@@ -345,9 +285,9 @@ function Helper.getTheme()
         if typeof(str) ~= 'string' then
             return false
         end
-    
+
         str = str:gsub('#', '')
-    
+
         return string.match(str, `^%x%x%x%x%x%x$`) ~= nil
     end
 
@@ -387,13 +327,17 @@ function Helper.getTheme()
         return base
     end
 
-    local function createColor(color: string | { color: string, style: string }): ThemeColor.ThemeColor
+    local function createColor(
+        color: string | { color: string, style: string }
+    ): ThemeColor.ThemeColor
         if typeof(color) == 'string' then
             local colorize = IsHex(color) and Chalk.hex(color) or Chalk[color] or default_color
             return ThemeColor(colorize)
         else
-            local colorize = IsHex(color.color) and Chalk.hex(color.color) or Chalk[color.color] or default_color
-            local style = Chalk[color.style] 
+            local colorize = IsHex(color.color) and Chalk.hex(color.color)
+                or Chalk[color.color]
+                or default_color
+            local style = Chalk[color.style]
 
             return ThemeColor(colorize, style)
         end

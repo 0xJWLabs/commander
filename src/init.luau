@@ -2,7 +2,7 @@ local Argument = require('./argument')
 local Command = require('./command')
 local Option = require('./option')
 
-export type Command = Command.Command 
+export type Command = Command.Command
 export type Option = Option.Option
 export type Argument = Argument.Argument
 
