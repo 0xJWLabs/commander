@@ -1,10 +1,10 @@
+local Ansis = require('./utils/ansis')
 local Argument = require('./argument')
 local Config = require('./config')
 local String = require('./utils/string')
 local Table = require('./utils/table')
 local ThemeColor = require('./colors/themeColor')
 local Themes = require('./colors/themes')
-local Ansis = require('./utils/ansis')
 
 local Types = require('./types')
 
@@ -110,10 +110,7 @@ end
 
 function Helper.optionDescription(option: Option)
     return option.description
-        .. (
-            not (option.defaultValue == nil) and ' (default: "' .. tostring(option.defaultValue) .. '")'
-            or ''
-        )
+        .. (not (option.defaultValue == nil) and ' (default: "' .. tostring(option.defaultValue) .. '")' or '')
 end
 
 function Helper.commandDescription(cmd: any)
@@ -135,11 +132,7 @@ function Helper.commandTerm(commander: any, cmd: any): string?
     end
 
     local usage = ' '
-    return (
-        usage
-        .. (commander._name and commander._name .. ' ' or '')
-        .. Helper.subCommandTerm(cmd)
-    )
+    return (usage .. (commander._name and commander._name .. ' ' or '') .. Helper.subCommandTerm(cmd))
 end
 
 function Helper.commandUsage(cmd: any): string?
@@ -168,11 +161,9 @@ function Helper.visibleOptions(cmd: any): { Option }
 end
 
 function Helper.visibleArguments(cmd: any)
-    if
-        Table.find(cmd.registeredArguments, function(argument)
-            return argument.description
-        end)
-    then
+    if Table.find(cmd.registeredArguments, function(argument)
+        return argument.description
+    end) then
         return cmd.registeredArguments
     end
 
@@ -236,45 +227,27 @@ function Helper.formatHelp(cmd: any)
     end
 
     local argumentList = Table.map(Helper.visibleArguments(cmd), function(arg)
-        return formatItem(
-            theme.command.argument.color(Helper.argumentTerm(arg)),
-            Helper.argumentDescription(arg)
-        )
+        return formatItem(theme.command.argument.color(Helper.argumentTerm(arg)), Helper.argumentDescription(arg))
     end)
 
     if #argumentList > 0 then
-        output = Table.concat(
-            output,
-            { `{categoryColor.color(`Arguments:`)}`, formatList(argumentList), '' }
-        )
+        output = Table.concat(output, { `{categoryColor.color(`Arguments:`)}`, formatList(argumentList), '' })
     end
 
     local optionList = Table.map(Helper.visibleOptions(cmd), function(opt)
-        return formatItem(
-            theme.command.option.color(Helper.optionTerm(opt)),
-            Helper.optionDescription(opt)
-        )
+        return formatItem(theme.command.option.color(Helper.optionTerm(opt)), Helper.optionDescription(opt))
     end)
 
     if #optionList > 0 then
-        output = Table.concat(
-            output,
-            { `{categoryColor.color(`Options:`)}`, formatList(optionList), '' }
-        )
+        output = Table.concat(output, { `{categoryColor.color(`Options:`)}`, formatList(optionList), '' })
     end
 
     local commandList = Table.map(Helper.visibleCommands(cmd), function(cmd)
-        return formatItem(
-            theme.command.definition.color(Helper.subCommandTerm(cmd)),
-            Helper.subCommandDescription(cmd)
-        )
+        return formatItem(theme.command.definition.color(Helper.subCommandTerm(cmd)), Helper.subCommandDescription(cmd))
     end)
 
     if #commandList > 0 then
-        output = Table.concat(
-            output,
-            { `{categoryColor.color(`Commands:`)}`, formatList(commandList), '' }
-        )
+        output = Table.concat(output, { `{categoryColor.color(`Commands:`)}`, formatList(commandList), '' })
     end
 
     local result = table.concat(output, '\n')
@@ -329,16 +302,12 @@ function Helper.getTheme()
         return base
     end
 
-    local function createColor(
-        color: string | { color: string, style: string }
-    ): ThemeColor.ThemeColor
+    local function createColor(color: string | { color: string, style: string }): ThemeColor.ThemeColor
         if typeof(color) == 'string' then
             local colorize = IsHex(color) and Ansis.hex(color) or Ansis[color] or default_color
             return ThemeColor(colorize)
         else
-            local colorize = IsHex(color.color) and Ansis.hex(color.color)
-                or Ansis[color.color]
-                or default_color
+            local colorize = IsHex(color.color) and Ansis.hex(color.color) or Ansis[color.color] or default_color
             local style = Ansis[color.style]
 
             return ThemeColor(colorize, style)

@@ -1,7 +1,7 @@
 local PREFIX = '__lsn_'
 
-local Table = require("./table")
-local Class = require("./class")
+local Class = require('./class')
+local Table = require('./table')
 local EventEmitter = {
     defaultMaxListeners = 10,
 }
@@ -46,11 +46,7 @@ function EventEmitter.prototype._getEv(self: EventEmitter, type: string)
     return self.connections[type]
 end
 
-function EventEmitter.prototype.addListener<T...>(
-    self: EventEmitter,
-    type: string,
-    listener: (T...) -> ()
-)
+function EventEmitter.prototype.addListener<T...>(self: EventEmitter, type: string, listener: (T...) -> ())
     local events
     local existing
 
@@ -104,7 +100,7 @@ function EventEmitter.prototype.emit<T...>(self: EventEmitter, type: string, ...
     if evTbl ~= nil then
         if next(evTbl) then
             for _, lsn in evTbl do
-                local status =pcall(lsn, ...)
+                local status = pcall(lsn, ...)
                 if not status then
                     print('emit error: ', type)
                 end
@@ -115,11 +111,7 @@ function EventEmitter.prototype.emit<T...>(self: EventEmitter, type: string, ...
     return self
 end
 
-function EventEmitter.prototype.removeListener<T...>(
-    self: EventEmitter,
-    type: string,
-    listener: (T...) -> ()?
-)
+function EventEmitter.prototype.removeListener<T...>(self: EventEmitter, type: string, listener: (T...) -> ()?)
     local events = self.connections
     local list = events[type]
 

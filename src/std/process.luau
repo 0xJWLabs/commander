@@ -1,4 +1,4 @@
-local process = require('@lune/process') 
+local process = require('@lune/process')
 local stdio = require('@lune/stdio')
 
 local Process = {}
@@ -14,9 +14,9 @@ function Process.stderr.write(str: string): ()
 end
 
 export type process = typeof(setmetatable(Process, {
-    __index = process
+    __index = process,
 }))
 
 return setmetatable(Process, {
-    __index = require('@lune/process') 
+    __index = require('@lune/process'),
 }) :: process

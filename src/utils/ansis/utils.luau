@@ -47,7 +47,7 @@ local function hexToRgb(value: string): { number }
 end
 
 local function rgbToAnsi256(r: number, g: number, b: number): number
-    if r == g  and g == b then
+    if r == g and g == b then
         if r < 8 then
             return 16
         end
@@ -58,16 +58,16 @@ local function rgbToAnsi256(r: number, g: number, b: number): number
         return round(((r - 8) / 247) * 24) + 232
     end
 
-    return 16 + (36 * round(r / 51)) + (6 * round(g/ 51)) + round(b / 51)
+    return 16 + (36 * round(r / 51)) + (6 * round(g / 51)) + round(b / 51)
 end
 
 local function ansi256To16(code: number): number
     local r, g, b
-    
+
     if code < 8 then
         return 30 + code
     end
-    
+
     if code < 16 then
         return 90 + (code - 8)
     end
@@ -122,5 +122,5 @@ return table.freeze({
     rgbToAnsi256 = rgbToAnsi256,
     ansi256To16 = ansi256To16,
     rgbToAnsi16 = rgbToAnsi16,
-    stringEncaseCRLFWithFirstIndex = stringEncaseCRLFWithFirstIndex
+    stringEncaseCRLFWithFirstIndex = stringEncaseCRLFWithFirstIndex,
 })

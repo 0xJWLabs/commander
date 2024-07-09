@@ -13,4 +13,4 @@ return {
     Argument = Argument,
     program = Command.new(),
     debugProgram = Command.new(nil, true),
-} 
+}

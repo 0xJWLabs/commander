@@ -1,6 +1,6 @@
+local Ansis = require('../ansis')
 local date = require('@lune/datetime')
 local repr = require('../repr')
-local Ansis = require('../ansis')
 
 local enums = require('./enums')
 
@@ -55,8 +55,7 @@ function Logger.prototype.write(self: Logger, types: string, message: string, ..
     local extras = { ... }
 
     -- Prepare the main log line
-    local formattedMessage =
-        string.format('%s: %s %s', logType, Ansis.dim(chars.startLine), Ansis.bold(message))
+    local formattedMessage = string.format('%s: %s %s', logType, Ansis.dim(chars.startLine), Ansis.bold(message))
     local formattedInfo = string.format(
         '%s: %s at %s:%d [%s] - %s',
         logType,

@@ -1,9 +1,13 @@
 local function compareTwoStrings(first: string, second: string)
-    first = first:gsub("%s+", "")
-    second = second:gsub("%s+", "")
+    first = first:gsub('%s+', '')
+    second = second:gsub('%s+', '')
 
-    if first == second then return 1 end -- identical or empty
-    if #first < 2 or #second < 2 then return 0 end -- if either is a 0-letter or 1-letter string
+    if first == second then
+        return 1
+    end -- identical or empty
+    if #first < 2 or #second < 2 then
+        return 0
+    end -- if either is a 0-letter or 1-letter string
 
     local firstBigrams = {}
     for i = 1, #first - 1 do
@@ -24,11 +28,19 @@ local function compareTwoStrings(first: string, second: string)
 end
 
 local function areArgsValid(mainString, targetStrings)
-    if type(mainString) ~= "string" then return false end
-    if type(targetStrings) ~= "table" then return false end
-    if #targetStrings == 0 then return false end
+    if type(mainString) ~= 'string' then
+        return false
+    end
+    if type(targetStrings) ~= 'table' then
+        return false
+    end
+    if #targetStrings == 0 then
+        return false
+    end
     for _, s in ipairs(targetStrings) do
-        if type(s) ~= "string" then return false end
+        if type(s) ~= 'string' then
+            return false
+        end
     end
     return true
 end
@@ -84,5 +96,5 @@ end
 return {
     compareTwoStrings = compareTwoStrings,
     findBestMatch = findBestMatch,
-    suggestSimilar = suggestSimilar
+    suggestSimilar = suggestSimilar,
 }

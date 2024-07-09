@@ -52,14 +52,12 @@ function Argument.interface.new(name: string, description: string?): Argument
         description = description or '',
         defaultValue = nil,
         defaultValueDescription = nil,
-        parseArg = nil
+        parseArg = nil,
     }
 
-    local arg = (
-        setmetatable(argument, {
-            __index = Argument.prototype,
-        }) :: any
-    ) :: Argument
+    local arg = (setmetatable(argument, {
+        __index = Argument.prototype,
+    }) :: any) :: Argument
 
     local firstChar = string.sub(name, 1, 1)
 
@@ -119,7 +117,7 @@ end
     @return Option 
 ]=]
 function Argument.prototype.argParser(self: Argument, fn: (value: string, previous: any) -> any): Argument
-    self.parseArg = fn 
+    self.parseArg = fn
     return self
 end
 

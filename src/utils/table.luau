@@ -81,14 +81,14 @@ function Table.spread<T>(array: Table<T>, i: number?, j: number?): ...T
 end
 
 function Table.reverse(t: Table<any>): Table<any>
-	local n = #t
-	local i = 1
-	while i < n do
-		t[i], t[n] = t[n], t[i]
-		i = i + 1
-		n = n - 1
-	end
-	return t
+    local n = #t
+    local i = 1
+    while i < n do
+        t[i], t[n] = t[n], t[i]
+        i = i + 1
+        n = n - 1
+    end
+    return t
 end
 
 function Table.reduce<T, U>(array: Table<T>, callback: reduceFn<T, U>, initialValue: U?): U
@@ -176,23 +176,23 @@ function Table.copy<K, V>(t: Object<K, V>, deep: boolean?): Object<K, V>
 end
 
 function Table.concat<T, S>(source: Table<T> | T, ...: Table<S> | S): Table<T> & Table<S>
-	local array
-	local elementCount = 0
+    local array
+    local elementCount = 0
 
-	if Table.isArray(source) then
-		array = table.clone(source :: Table<T>)
-		elementCount = #(source :: Table<T>)
-	else
-		elementCount += 1
-		array = {}
-		array[elementCount] = source :: T
-	end
+    if Table.isArray(source) then
+        array = table.clone(source :: Table<T>)
+        elementCount = #(source :: Table<T>)
+    else
+        elementCount += 1
+        array = {}
+        array[elementCount] = source :: T
+    end
 
-	for i = 1, select("#", ...) do
-		local value = select(i, ...)
-		local valueType = typeof(value)
+    for i = 1, select('#', ...) do
+        local value = select(i, ...)
+        local valueType = typeof(value)
         if value ~= nil then
-            if valueType == "table" then
+            if valueType == 'table' then
                 for k = 1, #value do
                     elementCount += 1
                     array[elementCount] = value[k]
@@ -202,9 +202,9 @@ function Table.concat<T, S>(source: Table<T> | T, ...: Table<S> | S): Table<T> &
                 array[elementCount] = value
             end
         end
-	end
+    end
 
-	return (array :: any) :: Table<T> & Table<S> 
+    return (array :: any) :: Table<T> & Table<S>
 end
 
 function Table.reconcile<S, T>(src: S, template: T): S & T
@@ -233,70 +233,69 @@ function Table.reconcile<S, T>(src: S, template: T): S & T
 end
 
 function Table.shift<T>(value: Table<T>): T?
-	if #value > 0 then
-		return table.remove(value, 1)
-	else
-		return nil
-	end
+    if #value > 0 then
+        return table.remove(value, 1)
+    else
+        return nil
+    end
 end
 
 function Table.slice<T>(t: Table<T>, start_idx: number?, end_idx: number?): Table<T>
-	if typeof(t) ~= "table" then
-		error(string.format("Array.slice called on %s", typeof(t)))
-	end
-	local length = #t
+    if typeof(t) ~= 'table' then
+        error(string.format('Array.slice called on %s', typeof(t)))
+    end
+    local length = #t
 
-	local start_idx_ = start_idx or 1
-	local end_idx_
-	if end_idx == nil or end_idx > length + 1 then
-		end_idx_ = length + 1
-	else
-		end_idx_ = end_idx
-	end
+    local start_idx_ = start_idx or 1
+    local end_idx_
+    if end_idx == nil or end_idx > length + 1 then
+        end_idx_ = length + 1
+    else
+        end_idx_ = end_idx
+    end
 
-	if start_idx_ > length + 1 then
-		return {}
-	end
+    if start_idx_ > length + 1 then
+        return {}
+    end
 
-	local slice = {}
+    local slice = {}
 
-	if start_idx_ < 1 then
-		start_idx_ = math.max(length - math.abs(start_idx_), 1)
-	end
-	if end_idx_ < 1 then
-		end_idx_ = math.max(length - math.abs(end_idx_), 1)
-	end
+    if start_idx_ < 1 then
+        start_idx_ = math.max(length - math.abs(start_idx_), 1)
+    end
+    if end_idx_ < 1 then
+        end_idx_ = math.max(length - math.abs(end_idx_), 1)
+    end
 
-	local idx = start_idx_
-	local i = 1
-	while idx < end_idx_ do
-		slice[i] = t[idx]
-		idx = idx + 1
-		i = i + 1
-	end
+    local idx = start_idx_
+    local i = 1
+    while idx < end_idx_ do
+        slice[i] = t[idx]
+        idx = idx + 1
+        i = i + 1
+    end
 
-	return slice
+    return slice
 end
 
 function Table.unshift<T>(array: Table<T>, ...: T): number
-	local numberOfItems = select("#", ...)
-	if numberOfItems > 0 then
-		for i = numberOfItems, 1, -1 do
-			local toInsert = select(i, ...)
-			table.insert(array, 1, toInsert)
-		end
-	end
+    local numberOfItems = select('#', ...)
+    if numberOfItems > 0 then
+        for i = numberOfItems, 1, -1 do
+            local toInsert = select(i, ...)
+            table.insert(array, 1, toInsert)
+        end
+    end
 
-	return #array
+    return #array
 end
 
 function Table.push<T>(arr: Table<T>, ...: T)
-    local varArgs = select("#", ...)
+    local varArgs = select('#', ...)
     for i = 1, varArgs do
         local arg = select(i, ...)
         table.insert(arr, arg)
     end
 end
-
 
 return Table

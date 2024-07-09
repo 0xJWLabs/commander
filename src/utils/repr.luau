@@ -1,5 +1,5 @@
-local Table = require('./table')
 local Ansis = require('./ansis')
+local Table = require('./table')
 
 export type ReprOptions = {
     spaces: number?,

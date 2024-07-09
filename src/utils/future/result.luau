@@ -15,22 +15,25 @@ local function new<T...>(ok: boolean, ...: T...): Result<T...>
     local self = {
         ok = ok,
         value = {},
-        _stringValue = {}
+        _stringValue = {},
     }
 
     for i = 1, select('#', ...) do
         local val = select(i, ...)
         table.insert(self.value, val)
-        table.insert(self._stringValue, repr(val, {colors = true }))
+        table.insert(self._stringValue, repr(val, { colors = true }))
     end
-    
-    return (setmetatable(self, {
-        __index = Result.prototype,
-        __type = `Result<{ok and 'Ok' or 'Error'}>`,
-        __tostring = function()
-            return ok and `Ok<{table.concat(self._stringValue, ', ')}>` or `Err<{table.concat(self._stringValue, ', ')}>` 
-        end
-    }) :: any) :: Result<T...>
+
+    return (
+        setmetatable(self, {
+            __index = Result.prototype,
+            __type = `Result<{ok and 'Ok' or 'Error'}>`,
+            __tostring = function()
+                return ok and `Ok<{table.concat(self._stringValue, ', ')}>`
+                    or `Err<{table.concat(self._stringValue, ', ')}>`
+            end,
+        }) :: any
+    ) :: Result<T...>
 end
 
 function Result.prototype.is_ok<T...>(self: Result<T...>): boolean
@@ -68,8 +71,8 @@ export type Result<T...> = {
     is_err: (self: Result<T...>) -> boolean,
 
     unwrap: (self: Result<T...>) -> T...,
-    
-    expect: (self: Result<T...>, message: string) -> T...
+
+    expect: (self: Result<T...>, message: string) -> T...,
 }
 
 return Result.interface

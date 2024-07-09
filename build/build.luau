@@ -7,7 +7,7 @@ local arch = process.arch
 
 local function processSpawn(processName: string, parameters: { string }): process.SpawnResult
     return process.spawn(processName, parameters, {
-        stdio = 'forward'
+        stdio = 'forward',
     })
 end
 
@@ -47,10 +47,14 @@ local function build(os: string)
     else
         target = 'commander'
     end
-    local res = processSpawn(
-        'lune',
-        { 'build', './dist/bundled.luau', '--output', `./release/{target}`, '--target', os }
-    )
+    local res = processSpawn('lune', {
+        'build',
+        './dist/bundled.luau',
+        '--output',
+        `./release/{target}`,
+        '--target',
+        os,
+    })
     if res.ok then
         if userOS .. '-' .. arch == os then
             fs.copy(`./release/{target}`, `./dist/{target}`)
@@ -92,21 +96,18 @@ return function()
     removeFileRecursive('./release')
 
     print('Building source code')
-    local res = processSpawn(
-        './build/luaup.exe',
-        {
-            'process',
-            './example/command.luau',
-            './dist/bundled.luau',
-            '--config',
-            './build/.luaup.json5',
-        }
-    )
+    local res = processSpawn('./build/luaup.exe', {
+        'process',
+        './example/command.luau',
+        './dist/bundled.luau',
+        '--config',
+        './build/.luaup.json5',
+    })
 
     local content = fs.readFile('./dist/bundled.luau')
-        content = '--!nocheck\n--!native\n\n' .. content
-        content = content:gsub('%.debugProgram', '.program')
-        fs.writeFile('./dist/bundled.luau', content)
+    content = '--!nocheck\n--!native\n\n' .. content
+    content = content:gsub('%.debugProgram', '.program')
+    fs.writeFile('./dist/bundled.luau', content)
 
     if res.ok then
         local content = fs.readFile('./dist/bundled.luau')

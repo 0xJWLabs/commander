@@ -125,7 +125,7 @@ function Option.interface.new(flags: string, description: string?): Option
     local self = (setmetatable(option, {
         __index = Option.prototype,
     }) :: any) :: Option
-    
+
     return self
 end
 
@@ -158,9 +158,9 @@ end
     @return Option
 ]=]
 function Option.prototype.argParser(self: Option, fn: (value: string, value: any) -> any): Option
-   self.parseArg = fn
+    self.parseArg = fn
 
-   return self
+    return self
 end
 
 --[=[
@@ -176,7 +176,7 @@ end
 function Option.prototype.makeOptionMandatory(self: Option, mandatory: boolean?): Option
     local actualMandatory: boolean = mandatory == nil and true or mandatory :: boolean
 
-    self.mandatory = not not actualMandatory 
+    self.mandatory = not not actualMandatory
 
     return self
 end

@@ -1,13 +1,13 @@
 local ArgumentModule = require('./argument')
 local Class = require('./utils/class')
+local Error = require('./utils/error')
 local EventEmitter = require('./utils/event')
+local Future = require('./utils/future')
 local Helper = require('./helper')
 local Option = require('./option')
 local String = require('./utils/string')
 local Table = require('./utils/table')
-local Future = require('./utils/future')
 local process = require('./std/process')
-local Error = require('./utils/error')
 
 local Config = require('./config')
 local Argument = ArgumentModule.Argument
@@ -20,7 +20,7 @@ local Logger = require('./utils/logger')
 local log = Logger.new('Command')
 
 type Argument = types.Argument
-type Option = types.Option 
+type Option = types.Option
 type Future<T...> = Future.Future<T...>
 
 --[=[
@@ -152,12 +152,12 @@ function Command.interface.new(name: string?, debug: boolean?): Command
             end,
             outputError = function(str: string, write: (str: string) -> ())
                 return write(str)
-            end
-        }
+            end,
+        },
     }
 
     local cmd = Class(self, Command.prototype):extend(EventEmitter.new())
-    return (cmd :: any) :: Command 
+    return (cmd :: any) :: Command
 end
 
 function Command.interface.setTheme(theme: string): ()
@@ -246,7 +246,7 @@ end
 function Command.prototype.showHelpAfterError(self: Command, displayHelp: boolean?): Command
     local actualDisplayHelp: boolean = displayHelp == nil and true or displayHelp :: boolean
     self._showHelpAfterError = not not actualDisplayHelp
-    return self 
+    return self
 end
 
 --[=[
@@ -261,7 +261,7 @@ end
 function Command.prototype.showSuggestionAfterError(self: Command, displaySuggestion: boolean?): Command
     local actualDisplaySuggestion: boolean = displaySuggestion == nil and true or displaySuggestion :: boolean
     self._showSuggestionAfterError = not not actualDisplaySuggestion
-    return self 
+    return self
 end
 
 --[=[
@@ -278,7 +278,9 @@ end
 ]=]
 function Command.prototype.addCommand(self: Command, cmd: Command, opts: { [string]: any }?): Command
     if not cmd._name then
-        Error.new(`Command passed to .addCommand() must have a name - specifify the name in Command constructor or using :name()`):throw()
+        Error.new(
+            `Command passed to .addCommand() must have a name - specifify the name in Command constructor or using :name()`
+        ):throw()
     end
 
     local actualOpts: { [string]: any } = opts or {}
@@ -294,7 +296,7 @@ function Command.prototype.addCommand(self: Command, cmd: Command, opts: { [stri
     self:_registerCommand(cmd)
     cmd.parent = self
 
-    return self 
+    return self
 end
 
 --[=[
@@ -375,9 +377,9 @@ function Command.prototype.addArgument(self: Command, argument: Argument): Comma
         Error.new(`a default value for a required argument is never used: '{argument:name()}'`):throw()
     end
 
-    table.insert(self.registeredArguments, argument) 
+    table.insert(self.registeredArguments, argument)
 
-    return self 
+    return self
 end
 
 --[=[
@@ -487,7 +489,13 @@ end
 
     @return ()
 ]=]
-function Command.prototype._callParseArg(self: Command, target: Option | Argument, value: string, previous: any, invalidArgumentMessage: string): ()
+function Command.prototype._callParseArg(
+    self: Command,
+    target: Option | Argument,
+    value: string,
+    previous: any,
+    invalidArgumentMessage: string
+): ()
     local success, err = pcall(target.parseArg :: any, value, previous)
     if not success then
         local message = `{invalidArgumentMessage} {err}`
@@ -509,10 +517,14 @@ end
     @return () 
 ]=]
 function Command.prototype._registerOption(self: Command, option: Option): ()
-    local matchingOption: Option? = (option.short and self:_findOption(option.short) or (option.long and self:_findOption(option.long)))
+    local matchingOption: Option? = (
+        option.short and self:_findOption(option.short) or (option.long and self:_findOption(option.long))
+    )
     if matchingOption then
         local matchingFlag = option.long and self:_findOption(option.long) and option.long or option.short
-        Error.new(`Cannot add option '{option.flags}'{self._name and ` to command '{self._name}'`} due to conflicting flag '{matchingFlag}' - already used by option '{matchingOption.flags}'`):throw()
+        Error.new(
+            `Cannot add option '{option.flags}'{self._name and ` to command '{self._name}'`} due to conflicting flag '{matchingFlag}' - already used by option '{matchingOption.flags}'`
+        ):throw()
     end
     table.insert(self.options, option)
     table.sort(self.options, function(a, b)
@@ -611,12 +623,7 @@ end
 
     @return Command
 ]=]
-function Command.prototype._optionEx(
-    self: Command,
-    flags: string,
-    description: string?,
-    defaultValue: any?
-): Command
+function Command.prototype._optionEx(self: Command, flags: string, description: string?, defaultValue: any?): Command
     local option = self:createOption(flags, description)
 
     if defaultValue then
@@ -643,12 +650,7 @@ end
 
     @return Command
 ]=]
-function Command.prototype.option(
-    self: Command,
-    flags: string,
-    description: string?,
-    default: any?
-): Command
+function Command.prototype.option(self: Command, flags: string, description: string?, default: any?): Command
     return self:_optionEx(flags, description, default)
 end
 
@@ -709,12 +711,7 @@ end
 
     @return Command
 ]=]
-function Command.prototype.setOptionValueWithSource(
-    self: Command,
-    key: string,
-    value: any,
-    source: string?
-): Command
+function Command.prototype.setOptionValueWithSource(self: Command, key: string, value: any, source: string?): Command
     self._optionValues[key] = value
     self._optionValueSources[key] = source
 
@@ -799,18 +796,14 @@ function Command.prototype._dispatchSubcommand<T>(
     if not subcommand then
         self:help()
     end
-    
+
     local promiseChain
-    promiseChain = self:_chainOrCallSubCommandHook(
-        promiseChain,
-        subcommand :: Command,
-        'preSubcommand'
-    )
+    promiseChain = self:_chainOrCallSubCommandHook(promiseChain, subcommand :: Command, 'preSubcommand')
 
     promiseChain = self:_chainOrCall(promiseChain, function()
         return (subcommand :: Command):_parseCommand(operands, unknown)
     end)
-   
+
     return promiseChain
 end
 
@@ -860,15 +853,12 @@ function Command.prototype._checkNumberOfArguments(self: Command)
         end
     end
 
-    if
-        #self.registeredArguments > 0
-        and self.registeredArguments[#self.registeredArguments].variadic
-    then
+    if #self.registeredArguments > 0 and self.registeredArguments[#self.registeredArguments].variadic then
         return
     end
 
     if #self.args > #self.registeredArguments then
-        self:_excessArguments(self.args) 
+        self:_excessArguments(self.args)
     end
 end
 
@@ -886,7 +876,8 @@ function Command.prototype._processArguments(self: Command)
     local function myParseArg(argument: Argument, value: string?, previous: any)
         local parsedValue = value
         if value ~= nil and argument.parseArg then
-            local invalidValueMessage = `error: command-argument value '${value}' is invalid for argument '${argument:name()}'.`
+            local invalidValueMessage =
+                `error: command-argument value '${value}' is invalid for argument '${argument:name()}'.`
             parsedValue = self:_callParseArg(argument, value, previous, invalidValueMessage)
         end
 
@@ -976,7 +967,7 @@ function Command.prototype._chainOrCallHooks(self: Command, future: Future<any>?
             return hookDetail.callback(hookDetail.hookedCommand, self)
         end)
     end
-    
+
     return result
 end
 
@@ -992,7 +983,12 @@ end
 
     @return Future<any>?
 ]=]
-function Command.prototype._chainOrCallSubCommandHook(self: Command, future: Future<any>?, subCommand: Command, event: string): Future<any>?
+function Command.prototype._chainOrCallSubCommandHook(
+    self: Command,
+    future: Future<any>?,
+    subCommand: Command,
+    event: string
+): Future<any>?
     local result = future
     if self._lifeCycleHooks[event] ~= nil then
         for _, hook in self._lifeCycleHooks[event] do
@@ -1068,7 +1064,7 @@ function Command.prototype._parseCommand(self: Command, operands: any, unknown: 
                         opts[opt:name()] = result[opt:attributeName()]
                     else
                         if not opt.hidden then
-                            opts[opt:name()] = repr(opt.defaultValue) 
+                            opts[opt:name()] = repr(opt.defaultValue)
                         end
                     end
                 end
@@ -1162,7 +1158,7 @@ function Command.prototype.helpInformation(self: Command)
 end
 
 function Command.prototype.help(self: Command)
-    self:outputHelp() 
+    self:outputHelp()
     process.exit(0)
 end
 
@@ -1173,9 +1169,11 @@ end
 
 function Command.prototype._outputHelpIfRequested(self: Command, args: { string })
     local helpOption = self:_getHelpOption()
-    local helpRequested = helpOption ~= nil and Table.find(args, function(arg)
-        return helpOption:is(arg)
-    end) ~= nil or false
+    local helpRequested = helpOption ~= nil
+            and Table.find(args, function(arg)
+                return helpOption:is(arg)
+            end) ~= nil
+        or false
     if helpRequested then
         self:outputHelp()
         process.exit(0)
@@ -1202,7 +1200,10 @@ function Command.prototype.alias(self: Command, alias: string): Command
         local matchingCommand = self.parent:_findCommand(alias)
         if matchingCommand then
             local existingCommand = table.concat(Table.concat({ matchingCommand._name }, matchingCommand._aliases), '|')
-            Error.new(`cannot add alias '{alias}' to command '{self._name}' as already have command '{existingCommand}'`):throw()
+            Error.new(
+                `cannot add alias '{alias}' to command '{self._name}' as already have command '{existingCommand}'`
+            )
+                :throw()
         end
     end
 
@@ -1213,7 +1214,7 @@ end
 
 function Command.prototype.aliases(self: Command, aliases: { string }): Command
     for _, alias in aliases do
-        self:alias(alias) 
+        self:alias(alias)
     end
     return self
 end
@@ -1233,12 +1234,7 @@ function Command.prototype.usage(self: Command): string
     return table.concat(fixedTable, ' ')
 end
 
-function Command.prototype.version(
-    self: Command,
-    str: string?,
-    flags: string?,
-    description: string?
-): Command
+function Command.prototype.version(self: Command, str: string?, flags: string?, description: string?): Command
     self._version = str or self._version
     flags = flags or '-V, --version'
     description = description or 'output the version number'
@@ -1253,11 +1249,7 @@ function Command.prototype.version(
     return self
 end
 
-function Command.prototype.helpOption(
-    self: Command,
-    flags: (string | boolean)?,
-    description: string?
-): Command
+function Command.prototype.helpOption(self: Command, flags: (string | boolean)?, description: string?): Command
     if typeof(flags) == 'boolean' then
         if flags == true then
             self._helpOption = self._helpOption or nil
@@ -1276,7 +1268,7 @@ function Command.prototype.helpOption(
     return self
 end
 
-function Command.prototype._getHelpOption(self: Command): Option 
+function Command.prototype._getHelpOption(self: Command): Option
     if self._helpOption == nil then
         self:helpOption(nil, nil)
     end
@@ -1364,10 +1356,7 @@ function Command.prototype.opts(self: Command)
 end
 
 function Command.prototype.error(self: Command, message: string, exitCode: number)
-    self._outputConfiguration.outputError(
-       `{message}\n`,
-       self._outputConfiguration.writeErr
-    )
+    self._outputConfiguration.outputError(`{message}\n`, self._outputConfiguration.writeErr)
 
     if self._showHelpAfterError then
         self._outputConfiguration.writeErr('\n')
@@ -1494,11 +1483,10 @@ function Command.prototype.unknownCommand(self: Command): ()
 
         suggestion = suggestSimilar(unknownName, candidateNames)
     end
-    
+
     local message = `error: unknown command '{unknownName}'{suggestion}`
     self:error(message, 0)
 end
-
 
 function Command.prototype.name(self: Command, name: string): Command
     self._name = name
@@ -1507,7 +1495,7 @@ function Command.prototype.name(self: Command, name: string): Command
 end
 
 export type CommandExtra = {
-    _version: string
+    _version: string,
 }
 
 export type Command = {
@@ -1537,8 +1525,8 @@ export type Command = {
     _outputConfiguration: {
         writeOut: (str: string) -> (),
         writeErr: (str: string) -> (),
-        outputError: (str: string, write: (str: string) -> ()) -> ()
-    }
+        outputError: (str: string, write: (str: string) -> ()) -> (),
+    },
 } & CommandExtra & typeof(Command.prototype) & EventEmitter.EventEmitter
 
 return Command.interface

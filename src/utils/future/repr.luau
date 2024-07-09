@@ -149,7 +149,7 @@ local DEFAULT_SETTINGS = {
     spaces = 4,
     sortKeys = true,
     console = false,
-    colors = true
+    colors = true,
 }
 
 local keywords = {
