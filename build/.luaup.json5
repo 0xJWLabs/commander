@@ -1,0 +1,30 @@
+{
+  bundle: {
+    "excludes": [
+      "@lune/**"
+    ],
+    "modules_identifier": "__BUNDLED_MODULES",
+    "require_mode": {
+      "name": "path",
+      "sources": {
+        "@commander": "../src"
+      }
+    }
+  },
+  "generator": "readable",
+  "rules": [
+    "remove_types",
+    "compute_expression",
+    "remove_unused_if_branch",
+    "convert_local_function_to_assign",
+    "remove_function_call_parens",
+    "remove_unused_if_branch",
+    "rename_variables",
+    "remove_unused_while",
+    "remove_unused_variable",
+    {
+      rule: "remove_comments",
+      except: ["^--!"]
+    }
+  ]
+}
