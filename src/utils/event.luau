@@ -1,5 +1,3 @@
-local PREFIX = '__lsn_'
-
 local Class = require('./class')
 local Table = require('./table')
 local EventEmitter = {
@@ -10,29 +8,6 @@ EventEmitter.prototype = {}
 EventEmitter.interface = {}
 
 EventEmitter.prototype.__type = 'EventEmitter'
-
-local function rmEntry(tbl: any, predicate: ((any) -> any)?)
-    local x, len = 0, #tbl
-    for i = 1, len do
-        local trusy, idx = false, (i - x)
-        if not predicate then
-            trusy = tbl[#tbl]
-        else
-            if type(predicate) == 'function' then
-                trusy = predicate(tbl[idx])
-            else
-                trusy = tbl[idx] == predicate
-            end
-        end
-
-        if tbl[idx] ~= nil and trusy then
-            tbl[idx] = nil
-            table.remove(tbl, idx)
-            x = x + 1
-        end
-    end
-    return tbl
-end
 
 function EventEmitter.prototype._ev(self: EventEmitter, type: string)
     if not self.connections[type] then
