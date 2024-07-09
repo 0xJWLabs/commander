@@ -1,3 +1,5 @@
+local LUA_PATTERN_CHARACTERS = string.gsub("([" .. ("$%^()-[].?"), "(.)", "%%%1") .. "])"
+
 local String = {}
 
 function String.slice(
@@ -110,6 +112,71 @@ function String.split(text: string, pattern: string, plain: boolean?)
         table.insert(ret, match)
     end
     return ret
+end
+
+function String.includes(str: string, substring: string, position: (string | number)?): boolean
+    local strLen, invalidBytePosition = utf8.len(str)
+	assert(strLen ~= nil, ("string `%s` has an invalid byte at position %s"):format(str, tostring(invalidBytePosition)))
+	if strLen == 0 then
+		return false
+	end
+
+	if #substring == 0 then
+		return true
+	end
+
+	local startIndex = 1
+	if position ~= nil then
+		startIndex = tonumber(position) or 1
+		if startIndex > strLen then
+			return false
+		end
+	end
+
+	if startIndex < 1 then
+		startIndex = 1
+	end
+
+	local init = utf8.offset(str, startIndex)
+    local value = string.gsub(substring, LUA_PATTERN_CHARACTERS, "%%%1")
+	local iStart, _ = string.find(str, value, init)
+	return iStart ~= nil
+end
+
+function String.indexOf(str: string, searchElement: string, fromIndex: number?): number
+	local length = #str
+	local fromIndex_ = if fromIndex ~= nil then if fromIndex < 1 then 1 else fromIndex :: number else 1
+
+	if #searchElement == 0 then
+		return if fromIndex_ > length then length else fromIndex_
+	end
+
+	if fromIndex_ > length then
+		return -1
+	end
+
+	searchElement = string.gsub(searchElement, LUA_PATTERN_CHARACTERS, "%%%1")
+	local searchElementLength = #searchElement
+
+	for i = fromIndex_, length do
+		if string.sub(str, i, i + searchElementLength - 1) == searchElement then
+			return i
+		end
+	end
+
+	return -1
+end
+
+function String.trim(source: string)
+    return String.trimStart(String.trimEnd(source))
+end
+
+function String.trimStart(source: string): string
+    return (source:gsub("^[%s]+", ""))
+end
+
+function String.trimEnd(source: string): string
+    return (source:gsub("[%s]+$", ""))
 end
 
 return setmetatable(String, {

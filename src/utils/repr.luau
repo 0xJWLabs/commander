@@ -1,5 +1,5 @@
-local Chalk = require('./chalk')
 local Table = require('./table')
+local Ansis = require('./ansis')
 
 export type ReprOptions = {
     spaces: number?,
@@ -67,9 +67,9 @@ local function isLuaIdentifier<T>(str: T)
 end
 
 local Colors = {
-    boolean = Chalk.hex('#f9e2af'),
-    number = Chalk.hex('#74c7ec'),
-    ['nil'] = Chalk.hex('#f9e2af'),
+    boolean = Ansis.hex('#f9e2af'),
+    number = Ansis.hex('#74c7ec'),
+    ['nil'] = Ansis.hex('#f9e2af'),
 }
 
 local INDENT
@@ -91,7 +91,7 @@ local function repr<T>(value: T, reprOptions: ReprOptions?): string
     end
 
     if typeof(v) == 'string' then
-        return ('%q'):format(v)
+        return ('%s'):format(v)
     elseif typeof(v) == 'number' then
         if v == math.huge then
             return 'math.huge'
@@ -133,7 +133,7 @@ local function repr<T>(value: T, reprOptions: ReprOptions?): string
             local keyValueStrings = {}
             for k, v in v do
                 depth = depth + 1
-                local kStr = isLuaIdentifier(k) and ('["' .. k .. '"]') or ('[' .. repr(k) .. ']')
+                local kStr = isLuaIdentifier(k) and ('' .. k .. '') or ('' .. repr(k) .. '')
                 local vStr = repr(v)
                 table.insert(keyOrder, kStr)
                 keyValueStrings[kStr] = vStr

@@ -1,5 +1,8 @@
 local String = require('./utils/string')
 local Table = require('./utils/table')
+local Types = require('./types')
+
+type Option = Types.Option
 
 local function splitOptionFlags(flags: string)
     local shortFlag
@@ -49,6 +52,53 @@ local function camelcase(str: string)
     end)
 end
 
+--[=[
+    @class Option
+]=]
+--[=[
+    @prop flags string
+    @within Option
+]=]
+--[=[
+    @prop description string
+    @within Option
+]=]
+--[=[
+    @prop required boolean
+    @within Option
+]=]
+--[=[
+    @prop optional boolean
+    @within Option
+]=]
+--[=[
+    @prop mandatory boolean
+    @within Option
+]=]
+--[=[
+    @prop hidden boolean
+    @within Option
+]=]
+--[=[
+    @prop short string?
+    @within Option
+]=]
+--[=[
+    @prop long string?
+    @within Option
+]=]
+--[=[
+    @prop defaultValue any?
+    @within Option
+]=]
+--[=[
+    @prop defaultValueDescription string?
+    @within Option
+]=]
+--[=[
+    @prop parseArg ((value: string, previous: any) -> any)?
+    @within Option
+]=]
 local Option = {}
 
 Option.prototype = {}
@@ -56,6 +106,106 @@ Option.interface = {}
 
 Option.prototype.__type = 'Option'
 
+function Option.interface.new(flags: string, description: string?): Option
+    local optionFlags = splitOptionFlags(flags)
+    local option = {
+        flags = flags,
+        description = description or '',
+        required = String.includes(flags, '<'),
+        optional = String.includes(flags, '%['),
+        mandatory = false,
+        short = optionFlags.shortFlag and '-' .. optionFlags.shortFlag or nil,
+        long = optionFlags.longFlag and '--' .. optionFlags.longFlag or nil,
+        defaultValue = nil,
+        defaultValueDescription = nil,
+        parseArg = nil,
+        hidden = false,
+    }
+
+    local self = (setmetatable(option, {
+        __index = Option.prototype,
+    }) :: any) :: Option
+    
+    return self
+end
+
+--[=[
+    Set tge default value, and optionally supply the description to be displayed in the help.
+
+    @method default
+    @within Option
+
+    @param value any
+    @param description string?
+    
+    @return Option
+]=]
+function Option.prototype.default(self: Option, value: any, description: string?): Option
+    self.defaultValue = value
+    self.defaultValueDescription = description
+
+    return self
+end
+
+--[=[
+    Set the custom handler for processing CLI option arguments into option values.
+
+    @method argParser 
+    @within Option
+
+    @param fn (value: string, previous: any) -> any
+    
+    @return Option
+]=]
+function Option.prototype.argParser(self: Option, fn: (value: string, value: any) -> any): Option
+   self.parseArg = fn
+
+   return self
+end
+
+--[=[
+    Whether the option is mandatory and must have a value after parsing.
+
+    @method makeOptionMandatory 
+    @within Option
+
+    @param mandatory boolean? 
+    
+    @return Option
+]=]
+function Option.prototype.makeOptionMandatory(self: Option, mandatory: boolean?): Option
+    local actualMandatory: boolean = mandatory == nil and true or mandatory :: boolean
+
+    self.mandatory = not not actualMandatory 
+
+    return self
+end
+
+--[=[
+    Hide option in help,
+
+    @method hideHelp 
+    @within Option
+
+    @param hide boolean? 
+    
+    @return Option
+]=]
+function Option.prototype.hideHelp(self: Option, hide: boolean?): Option
+    local actualHide: boolean = hide == nil and true or hide :: boolean
+    self.hidden = actualHide
+
+    return self
+end
+
+--[=[
+    Return option name. 
+
+    @method name 
+    @within Option
+
+    @return string 
+]=]
 function Option.prototype.name(self: Option): string
     if self.long then
         local name = string.gsub(self.long, '^-%-', '')
@@ -66,79 +216,45 @@ function Option.prototype.name(self: Option): string
     return name
 end
 
-function Option.prototype.is(self: Option, arg: string)
-    return self.short == arg or self.long == arg
-end
+--[=[
+    Return option name, in a camelcase format that can be used
+    as a object attribute key
 
+    @method attributeName
+    @within Option
+
+    @return string 
+]=]
 function Option.prototype.attributeName(self: Option): string
     return camelcase(self:name())
 end
 
-function Option.prototype.hide(self: Option, hide: boolean?): Option
-    local actualHide: boolean = hide == nil and true or hide :: boolean
-    self.hidden = actualHide
+--[=[
+    Check if `arg` matches the short or long flag. 
 
-    return self
+    @method is 
+    @within Option
+
+    @param arg string
+
+    @return boolean
+]=]
+function Option.prototype.is(self: Option, arg: string): boolean
+    return self.short == arg or self.long == arg
 end
 
-function Option.interface.new(params: OptionParams): Option
-    local flags = params.flags
-    local optionFlags = splitOptionFlags(flags)
-    local argument = {
-        short = optionFlags.shortFlag and '-' .. optionFlags.shortFlag or nil,
-        long = optionFlags.longFlag and '--' .. optionFlags.longFlag or nil,
-        flags = flags,
-        hidden = params.hidden,
-        description = params.description or '',
-        type = optionFlags.optType,
-        default = params.default == 'nil' and nil or params.default,
-        file = params.file,
-        transform = if params.transform ~= nil and typeof(params.transform) == 'function'
-            then params.transform
-            else function(param)
-                return param
-            end,
-    }
+--[=[
+    Return whether a boolean option.
 
-    if argument.type == 'flag' then
-        argument.default = false
-    end
+    Options are one of boolean, negated, required argument, or optional argument.
 
-    return (setmetatable(argument, {
-        __index = Option.prototype,
-    }) :: any) :: Option
+    @method isBoolean
+    @within Option
+
+    @return boolean 
+]=]
+function Option.prototype.isBoolean(self: Option): boolean
+    return not self.required and not self.optional
 end
-
-export type OldOptionParams = {
-    short: string?,
-    long: string?,
-    description: string?,
-    type: string?,
-    default: any?,
-    file: any?,
-    hidden: boolean?,
-    transform: ((param: any) -> any)?,
-}
-
-export type OptionParams = {
-    flags: string,
-    description: string?,
-    default: any?,
-    file: any?,
-    transform: ((param: any) -> any)?,
-    hidden: boolean?,
-}
-
-export type Option = {
-    hidden: boolean?,
-    short: string?,
-    long: string?,
-    flags: string,
-    description: string,
-    type: string,
-    default: any?,
-    file: any,
-    transform: (param: any) -> any,
-} & typeof(Option.prototype)
 
 return Option.interface

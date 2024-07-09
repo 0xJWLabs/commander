@@ -1,10 +1,11 @@
 base: luau 
 name: selene_defs
 globals:
-  # override Roblox require style with string requires
   require:
     args:
     - type: string
   warn:
     args:
-    - type: tuple
+    - type: string
+    - type: "..."
+      required: false 

@@ -1,6 +1,6 @@
-local chalk = require('../chalk')
 local date = require('@lune/datetime')
 local repr = require('../repr')
+local Ansis = require('../ansis')
 
 local enums = require('./enums')
 
@@ -56,7 +56,7 @@ function Logger.prototype.write(self: Logger, types: string, message: string, ..
 
     -- Prepare the main log line
     local formattedMessage =
-        string.format('%s: %s %s', logType, chalk.dim(chars.startLine), chalk.bold(message))
+        string.format('%s: %s %s', logType, Ansis.dim(chars.startLine), Ansis.bold(message))
     local formattedInfo = string.format(
         '%s: %s at %s:%d [%s] - %s',
         logType,
@@ -66,8 +66,8 @@ function Logger.prototype.write(self: Logger, types: string, message: string, ..
         getFullName(self),
         getCurrentDTStr()
     )
-    local messageLine = chalk.hex(color)(formattedMessage)
-    local infoLine = chalk.hex(color)(chalk.dim(formattedInfo))
+    local messageLine = Ansis.hex(color)(formattedMessage)
+    local infoLine = Ansis.hex(color)(Ansis.dim(formattedInfo))
 
     -- Prepare the lines to print
     local lines = { messageLine, infoLine }
@@ -77,11 +77,14 @@ function Logger.prototype.write(self: Logger, types: string, message: string, ..
         for i = 1, select('#', ...) do
             local lineEnding = (i == #extras) and chars.endLine or chars.line
             local extra = select(i, ...)
+            local type = extra['name'] or extra['title']
+            local data = extra['data'] or extra['value']
+
             local extraLine = string.format(
                 '%s [%s] %s',
-                chalk.hex(color)(chalk.dim(logType .. ':', lineEnding)),
-                extra[1],
-                repr(extra[2], { pretty = false })
+                Ansis.hex(color)(Ansis.dim(logType .. ':', lineEnding)),
+                type,
+                repr(data, { pretty = false })
             )
             table.insert(lines, extraLine)
         end

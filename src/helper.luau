@@ -1,22 +1,26 @@
 local Argument = require('./argument')
-local Chalk = require('./utils/chalk')
 local Config = require('./config')
-local Option = require('./option')
 local String = require('./utils/string')
 local Table = require('./utils/table')
 local ThemeColor = require('./colors/themeColor')
 local Themes = require('./colors/themes')
+local Ansis = require('./utils/ansis')
+
+local Types = require('./types')
+
+type Option = Types.Option
+type Argument = Types.Argument
 
 local Helper = {}
 
-function Helper.optionTerm(option: Option.Option)
+function Helper.optionTerm(option: Option)
     return option.flags
 end
 
-function Helper.optionDescription(option: Option.Option)
+function Helper.optionDescription(option: Option)
     local extraInfo = {}
-    if option.default ~= nil then
-        table.insert(extraInfo, `(default: {option.default})`)
+    if option.defaultValue ~= nil then
+        table.insert(extraInfo, `(default: {option.defaultValue})`)
     end
 
     if #extraInfo > 0 then
@@ -26,14 +30,14 @@ function Helper.optionDescription(option: Option.Option)
     return option.description
 end
 
-function Helper.argumentTerm(arg: Argument.Argument)
+function Helper.argumentTerm(arg: Argument)
     return arg:name()
 end
 
-function Helper.argumentDescription(arg: Argument.Argument)
+function Helper.argumentDescription(arg: Argument)
     local extraInfo = {}
-    if arg.default ~= nil then
-        table.insert(extraInfo, `default: {arg.default}`)
+    if arg.defaultValue ~= nil then
+        table.insert(extraInfo, `default: {arg.defaultValue}`)
     end
 
     if #extraInfo > 0 then
@@ -96,18 +100,18 @@ function Helper.subCommandDescription(cmd: any)
     return cmd._description
 end
 
-function Helper.optionTerm(option: Option.Option)
+function Helper.optionTerm(option: Option)
     return option.flags
 end
 
-function Helper.argumentTerm(argument: Argument.Argument)
+function Helper.argumentTerm(argument: Argument)
     return argument:name()
 end
 
-function Helper.optionDescription(option: Option.Option)
+function Helper.optionDescription(option: Option)
     return option.description
         .. (
-            not (option.default == nil) and ' (default: "' .. tostring(option.default) .. '")'
+            not (option.defaultValue == nil) and ' (default: "' .. tostring(option.defaultValue) .. '")'
             or ''
         )
 end
@@ -117,7 +121,7 @@ function Helper.commandDescription(cmd: any)
 end
 
 function Helper.commandFlag(cmd: any): string?
-    if cmd.hidden then
+    if cmd._hidden then
         return
     end
     local usage = 'Usage:'
@@ -126,7 +130,7 @@ function Helper.commandFlag(cmd: any): string?
 end
 
 function Helper.commandTerm(commander: any, cmd: any): string?
-    if cmd.hidden then
+    if cmd._hidden then
         return
     end
 
@@ -155,12 +159,12 @@ function Helper.commandUsage(cmd: any): string?
     return theme.command.definition.color(ancestorCmdNames .. cmdName .. ' ' .. cmd:usage())
 end
 
-function Helper.visibleOptions(cmd: any): { Option.Option }
-    local visibleOptions = Table.filter(cmd.options, function(opt: Option.Option)
+function Helper.visibleOptions(cmd: any): { Option }
+    local visibleOptions = Table.filter(cmd.options, function(opt: Option)
         return not opt.hidden
     end)
 
-    return visibleOptions :: { Option.Option }
+    return visibleOptions :: { Option }
 end
 
 function Helper.visibleArguments(cmd: any)
@@ -177,7 +181,7 @@ end
 
 function Helper.visibleCommands(cmd: any)
     local visibleCommands = Table.filter(cmd.commands, function(cmd)
-        return not cmd.hidden
+        return not cmd._hidden
     end)
 
     return visibleCommands
@@ -217,8 +221,8 @@ function Helper.formatHelp(cmd: any)
     local output = {}
 
     if not cmd.parent then
-        output = { `{theme.cli.title.color(theme.cli.title.style(Config.Title))}`, '' }
-        Table.concat(output, { `{categoryColor.color(`Usage:`)} {Helper.commandUsage(cmd)}`, '' })
+        output = { `{theme.cli.title.color(theme.cli.title.style(cmd._name))}`, '' }
+        output = Table.concat(output, { `{categoryColor.color(`Usage:`)} {Helper.commandUsage(cmd)}`, '' })
     else
         output = { `{categoryColor.color(`Usage:`)} {Helper.commandUsage(cmd)}`, '' }
     end
@@ -275,8 +279,6 @@ function Helper.formatHelp(cmd: any)
 
     local result = table.concat(output, '\n')
 
-    print(result)
-
     return result
 end
 
@@ -313,7 +315,7 @@ function Helper.getTheme()
 
     local theme = Themes[Config.Theme]
 
-    local default_color = Chalk.white
+    local default_color = Ansis.white
 
     local function createTheme(base, theme, fn)
         for index, value in base do
@@ -331,13 +333,13 @@ function Helper.getTheme()
         color: string | { color: string, style: string }
     ): ThemeColor.ThemeColor
         if typeof(color) == 'string' then
-            local colorize = IsHex(color) and Chalk.hex(color) or Chalk[color] or default_color
+            local colorize = IsHex(color) and Ansis.hex(color) or Ansis[color] or default_color
             return ThemeColor(colorize)
         else
-            local colorize = IsHex(color.color) and Chalk.hex(color.color)
-                or Chalk[color.color]
+            local colorize = IsHex(color.color) and Ansis.hex(color.color)
+                or Ansis[color.color]
                 or default_color
-            local style = Chalk[color.style]
+            local style = Ansis[color.style]
 
             return ThemeColor(colorize, style)
         end
